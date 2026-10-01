@@ -12,6 +12,12 @@ requires an explicit final confirmation for each action. Approve and
 request-changes also require a summary. Staged comments are sent only when
 the reviewer confirms a review submission.
 
+Merge and close are separate pull-request lifecycle actions. Require a
+separate explicit confirmation for each, show repository, PR number, and
+report head SHA, and never include staged comments in those actions. Before
+either action, the local helper verifies the live PR head still matches the
+report. Merge with `gh pr merge --match-head-commit`; close with `gh pr close`.
+
 ## Preconditions (every action)
 
 Confirm: repository (`owner/repo`), PR number, commit SHA (head SHA the

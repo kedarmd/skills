@@ -26,15 +26,17 @@ Tabs: Overview | Changes (n files · n findings), open on Overview
   Overview
     ├── Review summary (required, first)
     ├── Clickable SVG sequence diagram with source excerpts and finding links
-    └── Stats (files, +/-, commits) + key files
+    ├── Stats (files, +/-, commits) + key files
+    └── Finish review card (PR mode only)
   Changes
     ├── Changed file rail and unified diff with old/new line numbers
     ├── Findings panel beside the diff, filtered by severity and linked to
         separate finding detail views
     └── Inline comment composer on changed lines; shared comment staging
         with finding detail
-  Review actions (PR mode only, after findings and changes)
-    └── Comment → Request changes → Approve
+  Finish review card (PR mode only, on Overview and Changes)
+    ├── Comment → Request changes → Approve
+    └── Merge pull request → Close pull request
 Footer (SHAs, generated-at, schema version, mode note)
 ```
 
@@ -93,19 +95,26 @@ When in PR mode, the report stages comments locally and presents a review
 confirmation dialog. When opened through the helper started by the skill,
 it posts the payload to the loopback-only helper in
 `scripts/actions-server.py`; that
-helper checks the current PR head SHA and runs one `gh api` review request.
+helper checks the current PR head SHA and runs the requested `gh` action.
 The HTML never calls GitHub. Opening the HTML directly with `file://` keeps
-all review actions unavailable. The reviewer must confirm each submission;
-approve and request-changes also require a summary body.
+all review actions unavailable. Require a separate confirmation for each
+review, merge, or close action. Approve and request-changes also require a
+summary body; merge and close never include staged review comments.
+
+Place the same Finish review card at the bottom of both Overview and Changes
+so PR actions are available from either tab. Keep merge and close visually
+separate from review events inside the card's Pull request subsection.
 
 ```json
-{ "action": "COMMENT | REQUEST_CHANGES | APPROVE",
+{ "action": "COMMENT | REQUEST_CHANGES | APPROVE | MERGE | CLOSE",
   "repo": "owner/repo", "pr": 123, "commit_sha": "...",
   "comments": [{ "finding": "F-001", "file": "...", "line": 42, "side": "RIGHT", "body": "..." }],
   "body": "..." }
 ```
 
-Show the exact payload in a confirmation dialog before submitting. On stale
+Show the exact payload and effect in a confirmation dialog before submitting.
+Check the report head SHA again before every action. Merge through
+`gh pr merge --match-head-commit`; close through `gh pr close`. On stale
 head SHA or a GitHub error, show the error and preserve staged comments.
 
 ## Changes tab and comment integration

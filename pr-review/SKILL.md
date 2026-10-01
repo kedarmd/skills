@@ -4,9 +4,9 @@ description: >
   Perform a rigorous, evidence-based code review of a GitHub pull request,
   commit range, or local unpushed changes using git and the GitHub CLI (gh).
   Generate an interactive HTML review report with source-linked findings,
-  suggested fixes, review actions, and optional GitHub PR comments/approval/
-  change requests. Re-running the skill on an updated PR performs a
-  follow-up review focused on changes since the previous review.
+  suggested fixes, review actions, and optional GitHub PR comments, approval,
+  change requests, merge, or close. Re-running the skill on an updated PR
+  performs a follow-up review focused on changes since the previous review.
 ---
 
 # PR Review
@@ -282,7 +282,7 @@ Report contents: opening summary, clickable SVG change sequence, a Changes
 tab with per-file patches, related findings, dedicated detail views, and
 line-comment composers, syntax-colored source with highlighted lines,
 suggested comment/code fixes, theme toggle, metadata — plus review actions
-(comment / request-changes / approve) only in
+(comment / request-changes / approve / merge / close) only in
 `pull_request` mode; omit them for commit-range and local reviews, where
 there is no PR to act on. Change-flow nodes must come from actual evidence and
 link to findings/code — never invent architecture. Omit the flow if the

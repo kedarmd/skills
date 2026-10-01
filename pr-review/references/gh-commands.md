@@ -29,6 +29,10 @@ gh pr review PR --approve -b "$BODY"
 
 # Plain comment
 gh pr comment PR --body "$BODY"
+
+# Merge or close a pull request (only after explicit report confirmation)
+gh pr merge PR --repo OWNER/REPO --match-head-commit HEAD_SHA
+gh pr close PR --repo OWNER/REPO
 ```
 
 Notes:

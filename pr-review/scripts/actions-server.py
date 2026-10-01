@@ -55,14 +55,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
             repo, pr, sha, action = p["repo"], int(p["pr"]), p["commit_sha"], p["action"]
             if not REPO.fullmatch(repo) or pr < 1 or not SHA.fullmatch(sha):
                 raise ValueError("invalid repository, PR number, or head SHA")
-            if action not in ("COMMENT", "APPROVE", "REQUEST_CHANGES"):
+            if action not in ("COMMENT", "APPROVE", "REQUEST_CHANGES", "MERGE", "CLOSE"):
                 raise ValueError("unsupported review action")
             body = str(p.get("body", ""))
-            if action != "COMMENT" and not body.strip():
+            if action in ("APPROVE", "REQUEST_CHANGES") and not body.strip():
                 raise ValueError("approve and request changes require a review summary")
             comments = p.get("comments", [])
             if not isinstance(comments, list) or len(comments) > 100:
                 raise ValueError("invalid comment list")
+            if action in ("MERGE", "CLOSE") and (body.strip() or comments):
+                raise ValueError("merge and close actions cannot include review content")
             safe_comments = []
             for c in comments:
                 file, line, side, text = str(c["file"]), int(c["line"]), c["side"], str(c["body"])
@@ -78,7 +80,23 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 capture_output=True, text=True, timeout=30, check=True,
             ).stdout.strip()
             if current.lower() != sha.lower():
-                return self.send_json(409, {"error": "PR head changed since this report was generated. Refresh the review and re-check comment lines before posting."})
+                return self.send_json(409, {"error": "PR head changed since this report was generated. Refresh the review before taking action."})
+            if action == "MERGE":
+                result = subprocess.run(
+                    ["gh", "pr", "merge", str(pr), "--repo", repo, "--match-head-commit", sha],
+                    capture_output=True, text=True, timeout=90, stdin=subprocess.DEVNULL,
+                )
+                if result.returncode:
+                    return self.send_json(502, {"error": result.stderr.strip() or result.stdout.strip() or "gh pr merge failed"})
+                return self.send_json(200, {"url": f"https://github.com/{repo}/pull/{pr}", "message": "Pull request merged or added to the merge queue."})
+            if action == "CLOSE":
+                result = subprocess.run(
+                    ["gh", "pr", "close", str(pr), "--repo", repo],
+                    capture_output=True, text=True, timeout=90, stdin=subprocess.DEVNULL,
+                )
+                if result.returncode:
+                    return self.send_json(502, {"error": result.stderr.strip() or result.stdout.strip() or "gh pr close failed"})
+                return self.send_json(200, {"url": f"https://github.com/{repo}/pull/{pr}", "message": "Pull request closed."})
             payload = {"event": action, "commit_id": sha, "body": body, "comments": safe_comments}
             result = subprocess.run(
                 ["gh", "api", f"repos/{repo}/pulls/{pr}/reviews", "--method", "POST", "--input", "-"],
