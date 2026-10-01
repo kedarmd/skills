@@ -20,7 +20,7 @@ class ReportArtifactTests(unittest.TestCase):
     def test_discussion_order_partial_retry_and_show_all(self):
         template = (ROOT / "pr-review/templates/report.html").read_text()
         marker = '{"schema_version":"1.1","review":{"mode":"pull_request","repository":"owner/repo","pull_request":0,"base_sha":"base000","head_sha":"head000"},"summary":{"critical":0,"high":0,"medium":0,"low":0},"overview":{"summary":"Review summary goes here."},"flow":[],"changes":[],"findings":[],"pr_context":null}'
-        payload = {"schema_version":"1.1", "review":{"mode":"pull_request","repository":"acme/app","pull_request":3,"base_sha":"base000","head_sha":"head000"}, "summary":{"critical":0,"high":0,"medium":0,"low":1}, "overview":{"summary":"Fixture"},"flow":[],"changes":[{"path":"src/a.py","status":"modified","additions":1,"deletions":1,"patch":"@@ -7 +7 @@\n-old\n+new"}],"findings":[{"id":"F-001","severity":"LOW","title":"Related finding","summary":"Fixture finding","locations":[{"file":"src/a.py","start_line":6,"end_line":6}]}],"pr_context":None}
+        payload = {"schema_version":"1.1", "review":{"mode":"pull_request","repository":"acme/app","pull_request":3,"base_sha":"base000","head_sha":"head000"}, "summary":{"critical":0,"high":0,"medium":0,"low":1}, "overview":{"summary":"Fixture"},"flow":[],"changes":[{"path":"src/a.py","status":"modified","additions":1,"deletions":1,"patch":"@@ -7 +7 @@\n-old\n+new"}],"findings":[{"id":"F-001","severity":"LOW","title":"Related finding","summary":"Fixture finding","locations":[{"file":"src/a.py","start_line":7,"end_line":7}]},{"id":"F-002","severity":"LOW","title":"Interior overlap","summary":"Interior fixture finding","locations":[{"file":"src/a.py","start_line":6,"end_line":6}]}],"pr_context":None}
         page = template.replace(marker, json.dumps(payload))
         reviews = [
             {"user":{"login":"a"},"submitted_at":"2026-09-28T12:00:00Z","state":"APPROVED","body":"old decision"},
@@ -35,7 +35,7 @@ class ReportArtifactTests(unittest.TestCase):
                 items.append({"id":thread_id+"-reply","reply_to_id":root_id,"author":"reply-author","created_at":"2026-09-30T11:00:00Z","body":"nested reply","url":"https://example.test/reply"})
             return {"id":thread_id,"path":path,"line":line,"original_line":line,"start_line":line-2 if line==7 else line,"original_start_line":None,"side":"RIGHT","resolved":resolved,"outdated":outdated,"comments":items,"comments_complete":True}
         threads = [thread("t-unresolved","src/a.py",7,False,False,True),thread("t-resolved","src/a.py",8,True,False),thread("t-outdated","src/b.py",9,False,True)]
-        calls = {"reviews":0,"threads":0}
+        calls = {"reviews":0,"comments":0,"threads":0,"context":0}
 
         class Handler(BaseHTTPRequestHandler):
             def log_message(self, *_args):
@@ -53,6 +53,7 @@ class ReportArtifactTests(unittest.TestCase):
                 if self.path == "/":
                     return self.reply(200, page.encode(), "text/html")
                 if self.path.startswith("/__pr_review_context"):
+                    calls["context"] += 1
                     context = {"lifecycle":"open","created_at":"2026-09-01T10:00:00Z","updated_at":"2026-10-01T10:00:00Z","closed_at":None,"merged_at":None,"review_decision":"no_decision","fetched_at":"2026-10-01T10:00:00Z"}
                     return self.reply(200, {"context":context})
                 if self.path.startswith("/__pr_review_discussion"):
@@ -64,6 +65,7 @@ class ReportArtifactTests(unittest.TestCase):
                         state = {"items":reviews,"complete":False,"error":"rate limited after first page"}
                         result = {"reviews":reviews,"sources":{"reviews":state}}
                     else:
+                        calls["comments"] += 1
                         state = {"items":comments,"complete":True,"error":""}
                         result = {"comments":comments,"sources":{"comments":state}}
                     result["fetched_at"] = "2026-10-01T10:00:00Z"
@@ -87,8 +89,11 @@ class ReportArtifactTests(unittest.TestCase):
         def request(path, value=None, method=None):
             body = json.dumps(value).encode() if value is not None else None
             req = urllib.request.Request(f"http://127.0.0.1:{driver_port}{path}", data=body, headers={"Content-Type":"application/json"}, method=method)
-            with urllib.request.urlopen(req, timeout=8) as response:
-                return json.load(response)
+            try:
+                with urllib.request.urlopen(req, timeout=8) as response:
+                    return json.load(response)
+            except urllib.error.HTTPError as error:
+                raise AssertionError(error.read().decode()) from error
 
         try:
             for _ in range(60):
@@ -104,10 +109,25 @@ class ReportArtifactTests(unittest.TestCase):
             def evaluate(script):
                 return request(f"/session/{session}/execute/sync", {"script":script,"args":[]}, "POST")["value"]
 
+            self.assertTrue(evaluate("return document.querySelector('#tab-overview').classList.contains('active')"))
+            self.assertEqual(evaluate("return document.querySelector('#tab-changes').textContent.trim()"), "Review")
+            evaluate("document.querySelector('#tab-changes').click(); return true")
             for _ in range(60):
-                if evaluate("return document.querySelectorAll('.discussion-card')[1].querySelectorAll('.discussion-item').length") == 10:
+                if evaluate("return document.querySelectorAll('.discussion-card').length") == 2 and evaluate("return document.querySelectorAll('.discussion-card')[1].querySelectorAll('.discussion-item').length") == 10:
                     break
                 time.sleep(.1)
+            def resize(width, height):
+                request(f"/session/{session}/window/rect", {"width":width,"height":height}, "POST")
+            resize(1200, 900)
+            self.assertEqual(evaluate("return getComputedStyle(document.querySelector('.review-layout')).gridTemplateColumns.split(' ').length"), 2)
+            resize(800, 900)
+            self.assertEqual(evaluate("return getComputedStyle(document.querySelector('.review-layout')).gridTemplateColumns.split(' ').length"), 2)
+            resize(390, 844)
+            self.assertEqual(evaluate("return getComputedStyle(document.querySelector('.review-layout')).gridTemplateColumns.split(' ').length"), 1)
+            resize(1200, 900)
+            self.assertTrue(evaluate("return !!document.querySelector('[data-work-tab=changes]')"))
+            evaluate("document.querySelector('[data-work-tab=findings]').click(); return true")
+            self.assertIn("Related finding", evaluate("return document.querySelector('.workspace-detail').textContent"))
             self.assertEqual(evaluate("return [...document.querySelectorAll('.discussion-group')].map(x=>x.textContent).join('|')"), "changes requested|commented|approved")
             self.assertEqual(evaluate("return [...document.querySelectorAll('.discussion-card')[0].querySelectorAll('.discussion-item p')].map(x=>x.textContent).join('|')"), "new decision|middle decision|old decision")
             self.assertEqual(evaluate("return document.querySelector('.discussion-card .discussion-item strong').textContent"), "c")
@@ -125,16 +145,21 @@ class ReportArtifactTests(unittest.TestCase):
             self.assertEqual(fetched_after, fetched_before)
             evaluate("document.querySelector('#tab-changes').click(); return true")
             for _ in range(60):
-                if evaluate("return document.querySelectorAll('.thread-item').length") == 3:
+                if evaluate("return document.querySelectorAll('.thread-workspace .thread-item').length") == 3:
                     break
                 time.sleep(.1)
             self.assertIn("Partial", evaluate("return document.querySelector('.thread-workspace').textContent"))
             thread_timestamp = evaluate("var s=document.querySelector('.thread-workspace-head .status').textContent; return s.match(/fetched (.*)$/)[1]")
+            evaluate("document.querySelector('[data-work-tab=changes]').click(); return true")
+            self.assertIn("✓", evaluate("document.querySelector('.diff-row.add [data-compose-comment]').click();var t=document.querySelector('[data-line-draft]');t.value='shared comment';t.dispatchEvent(new Event('input'));document.querySelector('[data-stage-line]').click();return document.querySelector('.diff-row.add .line-comment').textContent"))
+            evaluate("document.querySelector('[data-work-tab=findings]').click(); return true")
+            self.assertEqual(evaluate("return document.querySelector('[data-finding-comment]').value"), "shared comment", evaluate("return document.querySelector('.workspace-detail').innerText"))
+            evaluate("document.querySelector('[data-work-tab=changes]').click(); return true")
             self.assertTrue(evaluate("return document.querySelector('#thread-t-unresolved').open"))
             self.assertFalse(evaluate("return document.querySelector('#thread-t-resolved').open"))
             self.assertFalse(evaluate("return document.querySelector('#thread-t-outdated').open"))
             self.assertTrue(evaluate("return document.querySelector('#thread-t-unresolved .thread-comment').querySelector('.thread-comment')!==null"))
-            self.assertEqual(evaluate("return document.querySelectorAll('.thread-findings [data-id=F-001]').length"), 1)
+            self.assertEqual(evaluate("return document.querySelectorAll('.thread-findings [data-id=F-002]').length"), 1)
             self.assertEqual(evaluate("return document.querySelector('.thread-anchor').textContent"), "1 thread")
             self.assertEqual(evaluate("return document.querySelector('.thread-anchor').dataset.threadJump"), "t-unresolved")
             evaluate("document.querySelector('.thread-anchor').click(); return true")
@@ -148,10 +173,17 @@ class ReportArtifactTests(unittest.TestCase):
             self.assertEqual(evaluate("return document.querySelector('.thread-filters > span').textContent.trim()"), "3 of 3 threads")
             evaluate("document.querySelector('[data-thread-retry]').click(); return true")
             time.sleep(.2)
-            self.assertEqual(evaluate("return document.querySelectorAll('.thread-item').length"), 3)
+            self.assertEqual(evaluate("return document.querySelectorAll('.thread-workspace .thread-item').length"), 3)
             self.assertIn("Refresh failed: thread refresh failed", evaluate("return document.querySelector('.thread-workspace').textContent"))
             after_thread_retry = evaluate("var s=document.querySelector('.thread-workspace-head .status').textContent; return s.match(/fetched (.*)$/)[1]")
             self.assertEqual(after_thread_retry, thread_timestamp)
+            self.assertTrue(evaluate("return !!document.querySelector('#refresh-all')"))
+            evaluate("document.querySelector('#refresh-all').click();return true")
+            for _ in range(60):
+                if calls == {"reviews":3,"comments":2,"threads":3,"context":2}:
+                    break
+                time.sleep(.1)
+            self.assertEqual(calls, {"reviews":3,"comments":2,"threads":3,"context":2})
         finally:
             if session:
                 try:
