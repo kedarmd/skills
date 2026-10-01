@@ -34,6 +34,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         request = urlsplit(self.path)
+        if request.path == "/__pr_review_discussion":
+            query = parse_qs(request.query)
+            repos, prs = query.get("repo", []), query.get("pr", [])
+            repo = repos[0] if len(repos) == 1 else ""
+            try:
+                pr = int(prs[0]) if len(prs) == 1 else 0
+            except ValueError:
+                pr = 0
+            if not REPO.fullmatch(repo) or pr < 1:
+                return self.send_json(400, {"error": "invalid repository or pull request number"})
+            source_values = query.get("source", [])
+            source = source_values[0] if len(source_values) == 1 else ""
+            if source not in ("reviews", "comments"):
+                return self.send_json(400, {"error": "source must be reviews or comments"})
+            return self.send_json(200, {"discussion": fetch_discussion(repo, pr, source)})
         if request.path == "/__pr_review_context":
             query = parse_qs(request.query)
             repos, prs = query.get("repo", []), query.get("pr", [])
@@ -98,7 +113,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send_json(200, {"context": value})
             except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError, ValueError) as e:
                 detail = getattr(e, "stderr", "") or str(e)
-                return self.send_json(502, {"error": detail.strip() or "could not read complete pull request context"})
+            return self.send_json(502, {"error": detail.strip() or "could not read complete pull request context"})
         if request.path == "/__pr_review_merge_methods":
             repo_values = parse_qs(request.query).get("repo", [])
             repo = repo_values[0] if len(repo_values) == 1 else ""
@@ -126,6 +141,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(data)
+
+
 
     def do_POST(self):
         if self.path != "/__pr_review_action":
@@ -207,6 +224,30 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.CalledProcessError, json.JSONDecodeError) as e:
             detail = getattr(e, "stderr", "") or str(e)
             return self.send_json(502, {"error": detail.strip() or "gh request failed"})
+
+def _paged_gh_json(endpoint):
+    """Read every page, retaining any complete pages if a later page fails."""
+    result = subprocess.run(
+        ["gh", "api", "--paginate", "--slurp", endpoint],
+        capture_output=True, text=True, timeout=60,
+    )
+    pages = json.loads(result.stdout or "[]")
+    if not isinstance(pages, list) or any(not isinstance(page, list) for page in pages):
+        raise ValueError("GitHub returned an invalid paginated response")
+    return [item for page in pages for item in page], result.returncode == 0, result.stderr.strip()
+
+
+def fetch_discussion(repo, pr, source):
+    endpoint = (f"repos/{repo}/pulls/{pr}/reviews" if source == "reviews"
+                else f"repos/{repo}/issues/{pr}/comments")
+    try:
+        items, complete, error = _paged_gh_json(endpoint)
+        state = {"items": items, "complete": complete, "error": error if not complete else ""}
+    except (subprocess.TimeoutExpired, FileNotFoundError, json.JSONDecodeError, ValueError) as e:
+        state = {"items": [], "complete": False, "error": str(e)}
+    return {source: state["items"], "sources": {source: state},
+            "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+
 
 
 def main():
