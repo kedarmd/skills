@@ -15,11 +15,13 @@ DEST_DIR="${SKILLS_DIR:-${HOME}/.agents/skills}"
 
 usage() {
   cat <<'EOF'
-Usage: install.sh [--dir DIR] [--repo URL] [--ref REF]
+Usage: install.sh [--dir DIR] [--repo URL] [--ref REF] [--local [--source DIR]]
 
   --dir DIR    skills directory to install into (default: ~/.agents/skills)
   --repo URL   git repo to install from (default: https://github.com/kedarmd/skills.git)
   --ref REF    branch/tag to track (default: main)
+  --local      install from a local checkout (includes uncommitted changes)
+  --source DIR local checkout to install from (default: directory containing install.sh)
 
 Env equivalents: SKILLS_DIR, SKILLS_REPO_URL, SKILLS_REF, SKILLS_CACHE_DIR.
 Re-run the same command to update.
@@ -31,6 +33,8 @@ while [ $# -gt 0 ]; do
     --dir) DEST_DIR="$2"; shift 2 ;;
     --repo) REPO_URL="$2"; shift 2 ;;
     --ref) REF="$2"; shift 2 ;;
+    --local) USE_LOCAL=1; shift ;;
+    --source) USE_LOCAL=1; SOURCE_DIR="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "error: unknown argument: $1" >&2; usage >&2; exit 1 ;;
   esac
@@ -38,7 +42,14 @@ done
 
 command -v git >/dev/null 2>&1 || { echo "error: git is required" >&2; exit 1; }
 
-if [ -d "${CACHE_DIR}/.git" ]; then
+if [ "${USE_LOCAL:-0}" = 1 ]; then
+  if [ -z "${SOURCE_DIR:-}" ]; then
+    SOURCE_DIR="$(cd "$(dirname "$0")" && pwd)"
+  fi
+  [ -d "${SOURCE_DIR}" ] || { echo "error: source dir not found: ${SOURCE_DIR}" >&2; exit 1; }
+  SRC_DIR="${SOURCE_DIR}"
+  echo "Installing from local checkout ${SRC_DIR} ..."
+elif [ -d "${CACHE_DIR}/.git" ]; then
   echo "Updating ${CACHE_DIR} ..."
   git -C "${CACHE_DIR}" remote set-url origin "${REPO_URL}"
   git -C "${CACHE_DIR}" fetch -q origin
@@ -50,9 +61,13 @@ else
   git clone -q --depth 1 --branch "${REF}" "${REPO_URL}" "${CACHE_DIR}"
 fi
 
+if [ "${USE_LOCAL:-0}" != 1 ]; then
+  SRC_DIR="${CACHE_DIR}"
+fi
+
 mkdir -p "${DEST_DIR}"
 installed=0
-for skill_src in "${CACHE_DIR}"/*/; do
+for skill_src in "${SRC_DIR}"/*/; do
   [ -f "${skill_src}SKILL.md" ] || continue
   name="$(basename "${skill_src}")"
   rm -rf "${DEST_DIR}/${name}"
@@ -61,5 +76,5 @@ for skill_src in "${CACHE_DIR}"/*/; do
   installed=$((installed + 1))
 done
 
-[ "${installed}" -gt 0 ] || { echo "error: no skills (dirs with SKILL.md) found in ${CACHE_DIR}" >&2; exit 1; }
+[ "${installed}" -gt 0 ] || { echo "error: no skills (dirs with SKILL.md) found in ${SRC_DIR}" >&2; exit 1; }
 echo "Done: ${installed} skill(s) in ${DEST_DIR}"

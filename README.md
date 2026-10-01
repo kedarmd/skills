@@ -43,11 +43,16 @@ Or set env vars instead of flags: `SKILLS_DIR`, `SKILLS_REPO_URL`,
 curl -fsSL https://raw.githubusercontent.com/kedarmd/skills/main/install.sh | SKILLS_DIR=./.opencode/skills bash
 ```
 
-From a local checkout (no network publish needed):
+From a local checkout (includes uncommitted changes, best for iterating):
 
 ```bash
-bash install.sh --repo /path/to/skills --dir ~/.agents/skills
+bash install.sh --local --dir ~/.agents/skills
+bash install.sh --local --source /path/to/skills --dir ~/.codex/skills
 ```
+
+Note: `bash install.sh --repo /path/to/skills` still goes through git and
+only installs committed revisions. Use `--local` when you want dirty
+working-tree files.
 
 ## Update
 
@@ -56,6 +61,12 @@ and re-copies the skills, so update == install:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/kedarmd/skills/main/install.sh | bash
+```
+
+For local iteration (picks up uncommitted changes again):
+
+```bash
+bash install.sh --local --dir ~/.agents/skills
 ```
 
 ## Uninstall
