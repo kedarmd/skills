@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PR Review</title>
+<!-- SELF-CONTAINED: no external CSS/JS/fonts/images. Edit sources in ../assets/. -->
+<style>
+/*__REPORT_CSS__*/
+:root{color-scheme:light dark;--fg:#1a1a1a;--muted:#666;--bg:#fff;--line:#e2e2e2;--hl:#fff3cd;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+@media(prefers-color-scheme:dark){:root{--fg:#e8e8e8;--muted:#aaa;--bg:#121212;--line:#333;--hl:#4a3f00}}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg);max-width:960px;margin:0 auto;padding:24px;line-height:1.5}
+header{border-bottom:2px solid var(--line);padding-bottom:12px;margin-bottom:16px}
+.counts span{display:inline-block;margin-right:8px;padding:2px 8px;border:1px solid var(--line);border-radius:4px;font-size:13px}
+.flow{border:1px solid var(--line);border-radius:6px;padding:12px;margin:16px 0}
+.flow ol{list-style:none;padding:0;margin:0}
+.flow li{margin:4px 0}.flow a{color:inherit}
+.finding{border:1px solid var(--line);border-radius:6px;margin:12px 0}
+.finding>summary{cursor:pointer;padding:10px 12px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.sev{font-size:12px;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid var(--line)}
+.sev-CRITICAL{background:#7f1d1d;color:#fff}.sev-HIGH{background:#fee2e2}.sev-MEDIUM{background:#fef9c3}.sev-LOW{background:#eef2ff}
+.status{font-size:12px;color:var(--muted)}
+.loc{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.detail{padding:0 12px 12px}.detail h4{margin:12px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+pre{background:rgba(127,127,127,.08);border:1px solid var(--line);border-radius:4px;padding:8px;overflow-x:auto;font-family:var(--mono);font-size:12.5px}
+pre .hl{background:var(--hl);display:block}
+code{font-family:var(--mono);font-size:.92em}
+.sugg{border-top:1px dashed var(--line);margin-top:8px;padding-top:8px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+button{padding:6px 10px;border:1px solid var(--line);border-radius:4px;background:transparent;color:inherit;cursor:pointer}
+button.primary{font-weight:700}
+textarea{width:100%;min-height:90px;font-family:var(--mono);font-size:13px;padding:8px}
+#payload{margin-top:16px}
+footer{color:var(--muted);font-size:12px;margin-top:24px;border-top:1px solid var(--line);padding-top:8px}
+</style>
+</head>
+<body>
+<header>
+<h1 id="title">PR Review</h1>
+<div id="meta"></div>
+<div class="counts" id="counts"></div>
+</header>
+<section class="flow" id="flowsec"><h2>Change flow</h2><ol id="flow"></ol></section>
+<main id="findings"></main>
+<section id="payload">
+<h2>Review actions</h2>
+<p>Select comments below, then copy the action payload for the agent to execute via <code>gh</code>. The browser never calls GitHub directly.</p>
+<div class="actions">
+<button id="approve" class="primary">Approve (needs agent confirm)</button>
+<button id="reqchanges" class="primary">Request changes (needs agent confirm)</button>
+<button id="copypayload">Copy action payload</button>
+</div>
+<textarea id="out" readonly placeholder="Action payload JSON appears here"></textarea>
+<details><summary>Payload preview</summary><pre id="preview">{}</pre></details>
+</section>
+<footer id="foot"></footer>
+<script type="application/json" id="review-data">
+{"schema_version":"1.0","review":{"mode":"pull_request","repository":"owner/repo","pull_request":0,"base_sha":"base000","head_sha":"head000"},"summary":{"critical":0,"high":0,"medium":0,"low":0},"flow":[],"findings":[]}
+</script>
+<script>
+/*__REPORT_JS__*/
+(function(){function $(s){return document.querySelector(s)}function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}var data=JSON.parse(document.getElementById("review-data").textContent);var r=data.review||{};document.title="PR Review "+(r.pull_request?"#"+r.pull_request:"")+" "+(r.pr_title||"");$("#title").textContent=(r.pull_request?("PR #"+r.pull_request+" "):"")+(r.pr_title||"Code review");$("#meta").innerHTML=esc(r.repository||"")+" &nbsp; "+esc(r.base_ref||r.base_sha||"")+" → "+esc(r.head_ref||r.head_sha||"")+(r.pr_author?(" &nbsp; @"+r.pr_author):"");var s=data.summary||{};$("#counts").innerHTML=["critical","high","medium","low"].map(function(k){return "<span>"+k+": "+(s[k]||0)+"</span>"}).join("");var order={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3};var fs=(data.findings||[]).slice().sort(function(a,b){return (order[a.severity]-order[b.severity])||(a.id<b.id?-1:1)});var flow=$("#flow");if(!data.flow||!data.flow.length){document.getElementById("flowsec").style.display="none"}else{data.flow.forEach(function(n,i){var li=document.createElement("li");var link=n.finding_ids&&n.finding_ids.length?(" → <a href='#"+n.finding_ids[0]+"'>"+esc(n.finding_ids.join(", "))+"</a>"):"";li.innerHTML=(i>0?"↓<br>":"")+"<strong>"+esc(n.label)+"</strong> "+(n.locations||[]).map(function(l){return "<span class='loc'>"+esc(l.file)+":"+l.start_line+"–"+l.end_line+"</span>"}).join(" ")+link;flow.appendChild(li)})}var main=$("#findings");var groups={};fs.forEach(function(f){(groups[f.severity]=groups[f.severity]||[]).push(f)});Object.keys(groups).sort(function(a,b){return order[a]-order[b]}).forEach(function(sev){var h=document.createElement("h2");h.textContent=sev;main.appendChild(h);groups[sev].forEach(function(f){var d=document.createElement("details");d.className="finding";d.id=f.id;var loc=(f.locations||[]).map(function(l){return l.file+":"+l.start_line+"–"+l.end_line}).join(", ");var sum=document.createElement("summary");sum.innerHTML="<span class='sev sev-"+sev+"'>"+sev+"</span> <strong>"+esc(f.title)+"</strong> <span class='loc'>"+esc(loc)+"</span> <span class='status'>"+esc(f.status||"new")+" "+esc(f.id||"")+"</span><br><span>"+esc(f.summary||"")+"</span>";d.appendChild(sum);var body=document.createElement("div");body.className="detail";function sec(t,v){if(!v)return "";return "<h4>"+t+"</h4><p>"+esc(v)+"</p>"}var code="";if(f.code_excerpt){code="<h4>Code</h4><pre>"+esc(f.code_excerpt)+"</pre>"}var sug=(f.suggestions||[]).map(function(sg,i){return "<div class='sugg'><label><input type='radio' name='"+f.id+"-sug' value='"+sg.id+"'"+(i===0?" checked":"")+"> <strong>"+esc(sg.title)+"</strong></label><p>"+esc(sg.comment||sg.description||"")+"</p>"+(sg.code?"<pre>"+esc(sg.code)+"</pre>":"")+"</div>"}).join("");body.innerHTML=sec("Why",f.reason)+sec("Impact",f.impact)+sec("Evidence",f.evidence)+code+(sug?"<h4>Suggested fixes</h4>"+sug:"")+"<div class='actions'><button data-act='comment'>Add comment</button><button data-act='discard'>Discard</button></div><textarea placeholder='Comment preview / edit before agent posts via gh'></textarea>";d.appendChild(body);var ta=body.querySelector("textarea");var firstSug=(f.suggestions||[])[0];if(firstSug)ta.value=firstSug.comment||"";body.querySelectorAll("input[type=radio]").forEach(function(radio){radio.addEventListener("change",function(){var sel=(f.suggestions||[]).find(function(x){return x.id===radio.value});if(sel)ta.value=sel.comment||""})});body.querySelector("[data-act=comment]").addEventListener("click",function(){addComment(f,ta.value)});body.querySelector("[data-act=discard]").addEventListener("click",function(){d.style.opacity=".45";removeComment(f.id)});main.appendChild(d)})});var payload={action:"submit_comments",repo:r.repository,pr:r.pull_request,commit_sha:r.head_sha,comments:[],body:""};function addComment(f,body){payload.comments=payload.comments.filter(function(c){return c.finding!==f.id});var l=(f.locations||[])[0]||{};payload.comments.push({finding:f.id,file:l.file,line:l.end_line||l.start_line,side:l.side||"RIGHT",body:body});render()}function removeComment(id){payload.comments=payload.comments.filter(function(c){return c.finding!==id});render()}function render(){$("#out").value=JSON.stringify(payload,null,2);$("#preview").textContent=$("#out").value}$("#copypayload").addEventListener("click",function(){render();$("#out").select();document.execCommand&&document.execCommand("copy");if(navigator.clipboard)navigator.clipboard.writeText($("#out").value)});$("#approve").addEventListener("click",function(){payload.action="approve";render();alert("Payload set to approve. Ask the agent to confirm and run via gh.")});$("#reqchanges").addEventListener("click",function(){payload.action="request_changes";render();alert("Payload set to request_changes. Ask the agent to confirm and run via gh.")});$("#foot").textContent="base "+(r.base_sha||"")+" head "+(r.head_sha||"")+" generated "+(r.generated_at||"")+" schema "+(data.schema_version||"");render()})();
+</script>
+</body>
+</html>

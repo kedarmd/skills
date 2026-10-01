@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pr-review-review-schema-1.0",
+  "title": "pr-review report payload",
+  "type": "object",
+  "required": ["schema_version", "review", "summary", "flow", "findings"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "review": {
+      "type": "object",
+      "required": ["mode", "repository", "base_sha", "head_sha"],
+      "properties": {
+        "mode": { "enum": ["pull_request", "commit_range", "local"] },
+        "repository": { "type": "string", "minLength": 1 },
+        "pull_request": { "type": "integer" },
+        "pr_url": { "type": "string" },
+        "pr_title": { "type": "string" },
+        "pr_author": { "type": "string" },
+        "base_ref": { "type": "string" },
+        "head_ref": { "type": "string" },
+        "base_sha": { "type": "string", "minLength": 7 },
+        "head_sha": { "type": "string", "minLength": 7 },
+        "generated_at": { "type": "string" }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["critical", "high", "medium", "low"],
+      "properties": {
+        "critical": { "type": "integer", "minimum": 0 },
+        "high": { "type": "integer", "minimum": 0 },
+        "medium": { "type": "integer", "minimum": 0 },
+        "low": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "flow": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "label"],
+        "properties": {
+          "id": { "type": "string" },
+          "label": { "type": "string" },
+          "locations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["file", "start_line", "end_line"],
+              "properties": {
+                "file": { "type": "string" },
+                "start_line": { "type": "integer", "minimum": 1 },
+                "end_line": { "type": "integer", "minimum": 1 }
+              }
+            }
+          },
+          "finding_ids": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "finding.schema.json" }
+    }
+  }
+}
