@@ -6,7 +6,10 @@
 Generate exactly one self-contained HTML document from validated findings.
 Start from `../templates/report.html`; `../assets/report.css` and
 `../assets/report.js` mirror its inline styles and renderer. Validate with
-`../scripts/validate-report.sh`, open with `../scripts/open-report.sh`.
+`../scripts/validate-report.sh`. For pull requests, the skill starts
+`../scripts/open-report.sh <absolute-report-path>` in a persistent command
+session and returns the served URL; the reviewer should not need to launch
+the helper manually. For other modes, return the validated HTML file directly.
 
 ## Design principles
 
@@ -87,8 +90,9 @@ button (keep Discard for local triage). The footer notes that PR actions
 are unavailable.
 
 When in PR mode, the report stages comments locally and presents a review
-confirmation dialog. When opened with `scripts/open-report.sh`, it posts the
-payload to the loopback-only helper in `scripts/actions-server.py`; that
+confirmation dialog. When opened through the helper started by the skill,
+it posts the payload to the loopback-only helper in
+`scripts/actions-server.py`; that
 helper checks the current PR head SHA and runs one `gh api` review request.
 The HTML never calls GitHub. Opening the HTML directly with `file://` keeps
 all review actions unavailable. The reviewer must confirm each submission;
@@ -124,7 +128,7 @@ clearly that no inline line anchor is available.
 No CDN JS/CSS, remote fonts, or external images. CSS/JS stay inline. The
 report renders from `file://` offline and supports the system theme plus a
 manual light/dark toggle; GitHub actions are available only when served by
-the local helper started through `open-report.sh`.
+the local helper started by the skill through `open-report.sh`.
 
 ## Code rendering
 

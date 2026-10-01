@@ -50,7 +50,7 @@ Reference material:
 - `schemas/finding.schema.json` — finding object schema
 - `templates/report.html` — self-contained report template
 - `assets/report.css`, `assets/report.js` — editable report sources
-- `scripts/open-report.sh` — open report in default browser
+- `scripts/open-report.sh` — serve a report locally and open it in the default browser
 - `scripts/validate-report.sh` — validate generated report
 - `references/gh-commands.md` — allowed `gh` patterns
 - `references/config.md` — optional `.pr-review/` repo config
@@ -63,7 +63,7 @@ The environment MUST provide:
 
 - `git`
 - `gh`
-- `python3` (to open reports with the local review-action helper)
+- `python3` (to serve PR reports with the local review-action helper)
 
 GitHub PR information MUST be obtained using `gh`.
 
@@ -255,8 +255,8 @@ Classify each finding: `new`, `unresolved`, `addressed`, `resolved`,
 Follow `stages/report.md`.
 
 The final deliverable MUST be a single self-contained HTML file with all
-CSS/JS embedded. It remains readable offline without Node, a server, CDN,
-remote fonts, or external images. PR actions use the optional local Python
+  CSS/JS embedded. It remains readable offline without Node, a server, CDN,
+  remote fonts, or external images. PR actions use the local Python
 helper described below. Embed the review JSON in:
 
 ```html
@@ -264,12 +264,19 @@ helper described below. Embed the review JSON in:
 ```
 
 Write to a temp directory, e.g.
-`/tmp/pr-review/<repo>-<pr-or-range>-<timestamp>/review.html`.
-Validate with `scripts/validate-report.sh`, then open with
-`scripts/open-report.sh`; it serves the report on loopback and opens the
-browser. Keep its terminal open while using PR review actions; stop it with
-Ctrl-C. The report remains readable directly as a standalone offline file,
-but GitHub actions are available only through this local helper.
+`/tmp/pr-review/<repo>-<pr-or-range>-<timestamp>/review.html`, and validate
+with `scripts/validate-report.sh`. For a `pull_request` report, the agent
+starts `scripts/open-report.sh <absolute-report-path>` as part of the
+workflow, using the host's command/session tool so the helper remains alive
+while the reviewer uses the report. It serves the report on loopback and
+opens the browser. Return the report URL to the reviewer; do not ask them to
+run the script or keep a terminal open. Keep the helper session running for
+the review, then stop it when the review is complete or the session ends.
+If the host cannot keep a local process alive or open a browser, state that
+limitation and provide the script command as a fallback. For commit-range
+and local reports, there are no GitHub actions, so provide the validated HTML
+file directly. The report also remains readable directly as a standalone
+offline file, but GitHub actions work only through the local helper.
 
 Report contents: opening summary, clickable SVG change sequence, a Changes
 tab with per-file patches, related findings, dedicated detail views, and
