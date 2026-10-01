@@ -101,6 +101,12 @@ all review actions unavailable. Require a separate confirmation for each
 review, merge, or close action. Approve and request-changes also require a
 summary body; merge and close never include staged review comments.
 
+For merge, load the repository's enabled merge methods through the local
+helper, let the reviewer choose one in the confirmation dialog, and include
+that method in the confirmed payload. The helper rechecks that the selected
+method is still enabled and passes its explicit `--merge`, `--squash`, or
+`--rebase` flag to `gh pr merge`.
+
 Place the same Finish review card at the bottom of both Overview and Changes
 so PR actions are available from either tab. Keep merge and close visually
 separate from review events inside the card's Pull request subsection.
@@ -108,13 +114,15 @@ separate from review events inside the card's Pull request subsection.
 ```json
 { "action": "COMMENT | REQUEST_CHANGES | APPROVE | MERGE | CLOSE",
   "repo": "owner/repo", "pr": 123, "commit_sha": "...",
+  "merge_method": "merge | squash | rebase",
   "comments": [{ "finding": "F-001", "file": "...", "line": 42, "side": "RIGHT", "body": "..." }],
   "body": "..." }
 ```
 
 Show the exact payload and effect in a confirmation dialog before submitting.
 Check the report head SHA again before every action. Merge through
-`gh pr merge --match-head-commit`; close through `gh pr close`. On stale
+`gh pr merge --match-head-commit` with the explicitly selected strategy;
+close through `gh pr close`. On stale
 head SHA or a GitHub error, show the error and preserve staged comments.
 
 ## Changes tab and comment integration

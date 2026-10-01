@@ -16,7 +16,9 @@ Merge and close are separate pull-request lifecycle actions. Require a
 separate explicit confirmation for each, show repository, PR number, and
 report head SHA, and never include staged comments in those actions. Before
 either action, the local helper verifies the live PR head still matches the
-report. Merge with `gh pr merge --match-head-commit`; close with `gh pr close`.
+report. Let the reviewer select an enabled merge method and pass its explicit
+`--merge`, `--squash`, or `--rebase` flag with `gh pr merge
+--match-head-commit`; close with `gh pr close`.
 
 ## Preconditions (every action)
 

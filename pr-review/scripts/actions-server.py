@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 import threading
+from urllib.parse import parse_qs, urlsplit
 import webbrowser
 from pathlib import Path
 
@@ -31,7 +32,26 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
-        if self.path not in ("/", "/review.html"):
+        request = urlsplit(self.path)
+        if request.path == "/__pr_review_merge_methods":
+            repo_values = parse_qs(request.query).get("repo", [])
+            repo = repo_values[0] if len(repo_values) == 1 else ""
+            if not REPO.fullmatch(repo):
+                return self.send_json(400, {"error": "invalid repository"})
+            try:
+                result = subprocess.run(
+                    ["gh", "api", f"repos/{repo}", "--jq", "{merge: .allow_merge_commit, squash: .allow_squash_merge, rebase: .allow_rebase_merge}"],
+                    capture_output=True, text=True, timeout=30, check=True,
+                )
+                settings = json.loads(result.stdout)
+                methods = [method for method in ("merge", "squash", "rebase") if settings.get(method)]
+                if not methods:
+                    return self.send_json(409, {"error": "This repository has no enabled merge method."})
+                return self.send_json(200, {"methods": methods})
+            except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError) as e:
+                detail = getattr(e, "stderr", "") or str(e)
+                return self.send_json(502, {"error": detail.strip() or "could not read repository merge settings"})
+        if request.path not in ("/", "/review.html"):
             return self.send_json(404, {"error": "not found"})
         data = self.report.read_bytes()
         self.send_response(200)
@@ -65,6 +85,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 raise ValueError("invalid comment list")
             if action in ("MERGE", "CLOSE") and (body.strip() or comments):
                 raise ValueError("merge and close actions cannot include review content")
+            merge_method = p.get("merge_method", "")
+            if action == "MERGE" and merge_method not in ("merge", "squash", "rebase"):
+                raise ValueError("choose a supported merge method")
+            if action != "MERGE" and merge_method:
+                raise ValueError("merge method is only valid for merge actions")
             safe_comments = []
             for c in comments:
                 file, line, side, text = str(c["file"]), int(c["line"]), c["side"], str(c["body"])
@@ -82,8 +107,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if current.lower() != sha.lower():
                 return self.send_json(409, {"error": "PR head changed since this report was generated. Refresh the review before taking action."})
             if action == "MERGE":
+                settings = subprocess.run(
+                    ["gh", "api", f"repos/{repo}", "--jq", "{merge: .allow_merge_commit, squash: .allow_squash_merge, rebase: .allow_rebase_merge}"],
+                    capture_output=True, text=True, timeout=30, check=True,
+                )
+                if not json.loads(settings.stdout).get(merge_method):
+                    return self.send_json(409, {"error": f"The {merge_method} merge method is not enabled for this repository. Refresh the report and choose an available method."})
+                flag = {"merge": "--merge", "squash": "--squash", "rebase": "--rebase"}[merge_method]
                 result = subprocess.run(
-                    ["gh", "pr", "merge", str(pr), "--repo", repo, "--match-head-commit", sha],
+                    ["gh", "pr", "merge", str(pr), "--repo", repo, "--match-head-commit", sha, flag],
                     capture_output=True, text=True, timeout=90, stdin=subprocess.DEVNULL,
                 )
                 if result.returncode:
@@ -106,7 +138,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return self.send_json(502, {"error": result.stderr.strip() or result.stdout.strip() or "gh api failed"})
             response = json.loads(result.stdout or "{}")
             return self.send_json(200, {"url": response.get("html_url", ""), "id": response.get("id")})
-        except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.CalledProcessError) as e:
+        except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.CalledProcessError, json.JSONDecodeError) as e:
             detail = getattr(e, "stderr", "") or str(e)
             return self.send_json(502, {"error": detail.strip() or "gh request failed"})
 
