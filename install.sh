@@ -2,14 +2,14 @@
 # Install (or update) the skills in this repo into an agent skills directory.
 # Idempotent: running it again updates to the latest revision.
 #
-#   curl -fsSL https://raw.githubusercontent.com/kedarmd/skills/master/install.sh | bash
-#   curl -fsSL https://raw.githubusercontent.com/kedarmd/skills/master/install.sh | bash -s -- --dir ~/.codex/skills
+#   curl -fsSL https://raw.githubusercontent.com/kedarmd/skills/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/kedarmd/skills/main/install.sh | bash -s -- --dir ~/.codex/skills
 #
 # Env overrides: SKILLS_REPO_URL, SKILLS_REF, SKILLS_CACHE_DIR, SKILLS_DIR
 set -euo pipefail
 
 REPO_URL="${SKILLS_REPO_URL:-https://github.com/kedarmd/skills.git}"
-REF="${SKILLS_REF:-master}"
+REF="${SKILLS_REF:-main}"
 CACHE_DIR="${SKILLS_CACHE_DIR:-${HOME}/.cache/agent-skills/repo}"
 DEST_DIR="${SKILLS_DIR:-${HOME}/.agents/skills}"
 
@@ -19,7 +19,7 @@ Usage: install.sh [--dir DIR] [--repo URL] [--ref REF]
 
   --dir DIR    skills directory to install into (default: ~/.agents/skills)
   --repo URL   git repo to install from (default: https://github.com/kedarmd/skills.git)
-  --ref REF    branch/tag to track (default: master)
+  --ref REF    branch/tag to track (default: main)
 
 Env equivalents: SKILLS_DIR, SKILLS_REPO_URL, SKILLS_REF, SKILLS_CACHE_DIR.
 Re-run the same command to update.

@@ -16,7 +16,7 @@ Copilot, and other agents implementing the open skills format.
 ## Install
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kedarmd/skills/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/kedarmd/skills/main/install.sh | bash
 ```
 
 This clones the repo to `~/.cache/agent-skills/repo` and copies each skill
@@ -25,7 +25,7 @@ into `~/.agents/skills`.
 Install somewhere else with `--dir`:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kedarmd/skills/master/install.sh | bash -s -- --dir ~/.codex/skills
+curl -fsSL https://raw.githubusercontent.com/kedarmd/skills/main/install.sh | bash -s -- --dir ~/.codex/skills
 ```
 
 Known target dirs (all observed/working as plain `SKILL.md` dirs; point
@@ -40,7 +40,7 @@ Or set env vars instead of flags: `SKILLS_DIR`, `SKILLS_REPO_URL`,
 `SKILLS_REF`, `SKILLS_CACHE_DIR`.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kedarmd/skills/master/install.sh | SKILLS_DIR=./.opencode/skills bash
+curl -fsSL https://raw.githubusercontent.com/kedarmd/skills/main/install.sh | SKILLS_DIR=./.opencode/skills bash
 ```
 
 From a local checkout (no network publish needed):
@@ -55,7 +55,7 @@ Re-run the same install command. It fast-forward-updates the cached clone
 and re-copies the skills, so update == install:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/kedarmd/skills/master/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/kedarmd/skills/main/install.sh | bash
 ```
 
 ## Uninstall
