@@ -1,11 +1,31 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "pr-review-review-schema-1.0",
+  "$id": "pr-review-review-schema-1.1",
   "title": "pr-review report payload",
   "type": "object",
-  "required": ["schema_version", "review", "summary", "flow", "findings", "overview", "changes"],
+  "required": ["schema_version", "review", "summary", "flow", "findings", "overview", "changes", "pr_context"],
   "properties": {
-    "schema_version": { "const": "1.0" },
+    "schema_version": { "const": "1.1" },
+    "pr_context": {
+      "description": "Last successfully fetched pull request lifecycle and aggregate review decision; null until a complete fetch succeeds.",
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["lifecycle", "created_at", "updated_at", "closed_at", "merged_at", "review_decision", "fetched_at"],
+          "properties": {
+            "lifecycle": { "enum": ["open", "closed", "merged"] },
+            "created_at": { "type": "string", "format": "date-time" },
+            "updated_at": { "type": "string", "format": "date-time" },
+            "closed_at": { "type": ["string", "null"], "format": "date-time" },
+            "merged_at": { "type": ["string", "null"], "format": "date-time" },
+            "review_decision": { "enum": ["approved", "changes_requested", "review_required", "no_decision"] },
+            "fetched_at": { "type": "string", "format": "date-time" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
     "review": {
       "type": "object",
       "required": ["mode", "repository", "base_sha", "head_sha"],

@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 import threading
+from datetime import datetime, timezone
 from urllib.parse import parse_qs, urlsplit
 import webbrowser
 from pathlib import Path
@@ -33,6 +34,97 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         request = urlsplit(self.path)
+        if request.path == "/__pr_review_discussion":
+            query = parse_qs(request.query)
+            repos, prs = query.get("repo", []), query.get("pr", [])
+            repo = repos[0] if len(repos) == 1 else ""
+            try:
+                pr = int(prs[0]) if len(prs) == 1 else 0
+            except ValueError:
+                pr = 0
+            if not REPO.fullmatch(repo) or pr < 1:
+                return self.send_json(400, {"error": "invalid repository or pull request number"})
+            source_values = query.get("source", [])
+            source = source_values[0] if len(source_values) == 1 else ""
+            if source not in ("reviews", "comments"):
+                return self.send_json(400, {"error": "source must be reviews or comments"})
+            return self.send_json(200, {"discussion": fetch_discussion(repo, pr, source)})
+        if request.path == "/__pr_review_threads":
+            query = parse_qs(request.query)
+            repos, prs = query.get("repo", []), query.get("pr", [])
+            repo = repos[0] if len(repos) == 1 else ""
+            try:
+                pr = int(prs[0]) if len(prs) == 1 else 0
+            except ValueError:
+                pr = 0
+            if not REPO.fullmatch(repo) or pr < 1:
+                return self.send_json(400, {"error": "invalid repository or pull request number"})
+            return self.send_json(200, {"thread_data": fetch_review_threads(repo, pr)})
+        if request.path == "/__pr_review_context":
+            query = parse_qs(request.query)
+            repos, prs = query.get("repo", []), query.get("pr", [])
+            repo = repos[0] if len(repos) == 1 else ""
+            try:
+                pr = int(prs[0]) if len(prs) == 1 else 0
+            except ValueError:
+                pr = 0
+            if not REPO.fullmatch(repo) or pr < 1:
+                return self.send_json(400, {"error": "invalid repository or pull request number"})
+            try:
+                result = subprocess.run(
+                    ["gh", "pr", "view", str(pr), "--repo", repo, "--json",
+                     "state,createdAt,updatedAt,closedAt,mergedAt,reviewDecision"],
+                    capture_output=True, text=True, timeout=30, check=True,
+                )
+                raw = json.loads(result.stdout)
+                required = ("state", "createdAt", "updatedAt", "closedAt", "mergedAt", "reviewDecision")
+                if not isinstance(raw, dict) or any(key not in raw for key in required):
+                    raise ValueError("GitHub returned incomplete pull request context")
+                if not isinstance(raw["state"], str):
+                    raise ValueError("GitHub returned an invalid pull request lifecycle state")
+                lifecycle = raw["state"].lower()
+                if lifecycle not in ("open", "closed"):
+                    raise ValueError("GitHub returned an unknown pull request lifecycle state")
+                dates = (raw["createdAt"], raw["updatedAt"])
+                if any(not isinstance(value, str) or not value for value in dates):
+                    raise ValueError("GitHub returned incomplete pull request dates")
+                lifecycle_dates = [raw["createdAt"], raw["updatedAt"]]
+                for key in ("closedAt", "mergedAt"):
+                    value = raw[key]
+                    if value is not None and (not isinstance(value, str) or not value):
+                        raise ValueError("GitHub returned an invalid pull request lifecycle date")
+                    if value is not None:
+                        lifecycle_dates.append(value)
+                for value in lifecycle_dates:
+                    try:
+                        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                    except ValueError as e:
+                        raise ValueError("GitHub returned an invalid pull request lifecycle date") from e
+                    if parsed.tzinfo is None:
+                        raise ValueError("GitHub returned a pull request date without a timezone")
+                if lifecycle == "closed" and not raw["closedAt"]:
+                    raise ValueError("GitHub returned an incomplete closed pull request")
+                if lifecycle == "open" and raw["mergedAt"]:
+                    raise ValueError("GitHub returned inconsistent pull request lifecycle data")
+                if raw["mergedAt"]:
+                    lifecycle = "merged"
+                decision = raw["reviewDecision"]
+                decisions = {"APPROVED": "approved", "CHANGES_REQUESTED": "changes_requested", "REVIEW_REQUIRED": "review_required"}
+                if decision is not None and (not isinstance(decision, str) or decision not in decisions):
+                    raise ValueError("GitHub returned an unknown aggregate review decision")
+                value = {
+                    "lifecycle": lifecycle,
+                    "created_at": raw["createdAt"],
+                    "updated_at": raw["updatedAt"],
+                    "closed_at": raw["closedAt"],
+                    "merged_at": raw["mergedAt"],
+                    "review_decision": decisions.get(decision, "no_decision"),
+                    "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                }
+                return self.send_json(200, {"context": value})
+            except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError, ValueError) as e:
+                detail = getattr(e, "stderr", "") or str(e)
+            return self.send_json(502, {"error": detail.strip() or "could not read complete pull request context"})
         if request.path == "/__pr_review_merge_methods":
             repo_values = parse_qs(request.query).get("repo", [])
             repo = repo_values[0] if len(repo_values) == 1 else ""
@@ -141,6 +233,138 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except (subprocess.TimeoutExpired, FileNotFoundError, subprocess.CalledProcessError, json.JSONDecodeError) as e:
             detail = getattr(e, "stderr", "") or str(e)
             return self.send_json(502, {"error": detail.strip() or "gh request failed"})
+
+def _paged_gh_json(endpoint):
+    """Read every page, retaining any complete pages if a later page fails."""
+    result = subprocess.run(
+        ["gh", "api", "--paginate", "--slurp", endpoint],
+        capture_output=True, text=True, timeout=60,
+    )
+    pages = json.loads(result.stdout or "[]")
+    if not isinstance(pages, list) or any(not isinstance(page, list) for page in pages):
+        raise ValueError("GitHub returned an invalid paginated response")
+    return [item for page in pages for item in page], result.returncode == 0, result.stderr.strip()
+
+
+def fetch_discussion(repo, pr, source):
+    endpoint = (f"repos/{repo}/pulls/{pr}/reviews" if source == "reviews"
+                else f"repos/{repo}/issues/{pr}/comments")
+    try:
+        items, complete, error = _paged_gh_json(endpoint)
+        state = {"items": items, "complete": complete, "error": error if not complete else ""}
+    except (subprocess.TimeoutExpired, FileNotFoundError, json.JSONDecodeError, ValueError) as e:
+        state = {"items": [], "complete": False, "error": str(e)}
+    return {source: state["items"], "sources": {source: state},
+            "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+
+
+def _graphql(query, variables):
+    args = ["gh", "api", "graphql", "-f", "query=" + query]
+    for name, value in variables.items():
+        args.extend(["-F", f"{name}={value if value is not None else 'null'}"])
+    result = subprocess.run(args, capture_output=True, text=True, timeout=60, check=True)
+    value = json.loads(result.stdout)
+    if not isinstance(value, dict) or value.get("errors"):
+        raise ValueError("GitHub returned an incomplete GraphQL response")
+    return value.get("data") or {}
+
+
+def _thread_comment(comment):
+    author = comment.get("author") or {}
+    reply_to = comment.get("replyTo") or {}
+    return {
+        "id": comment.get("id"), "reply_to_id": reply_to.get("id"),
+        "body": comment.get("body") or "", "created_at": comment.get("createdAt"),
+        "updated_at": comment.get("updatedAt"), "author": author.get("login") or "Unknown author",
+        "url": comment.get("url"), "path": comment.get("path"), "line": comment.get("line"),
+        "original_line": comment.get("originalLine"),
+    }
+
+
+def _thread_query():
+    return """query($owner:String!,$name:String!,$number:Int!,$after:String){
+      repository(owner:$owner,name:$name){pullRequest(number:$number){
+        reviewThreads(first:100,after:$after){nodes{
+          id path line originalLine startLine originalStartLine diffSide startDiffSide isResolved isOutdated
+          comments(first:100){nodes{id body createdAt updatedAt url path line originalLine author{login} replyTo{id}}
+            pageInfo{hasNextPage endCursor}}
+        } pageInfo{hasNextPage endCursor}}
+      }}
+    }"""
+
+
+def _page_values(page_info):
+    if (not isinstance(page_info, dict) or "hasNextPage" not in page_info
+            or "endCursor" not in page_info or not isinstance(page_info["hasNextPage"], bool)):
+        raise ValueError("GitHub returned incomplete review thread pagination data")
+    return page_info["hasNextPage"], page_info["endCursor"]
+
+
+def _thread_comments_query():
+    return """query($id:ID!,$after:String){node(id:$id){... on PullRequestReviewThread{
+      comments(first:100,after:$after){nodes{id body createdAt updatedAt url path line originalLine author{login} replyTo{id}}
+        pageInfo{hasNextPage endCursor}}
+    }}}"""
+
+
+def fetch_review_threads(repo, pr):
+    owner, name = repo.split("/", 1)
+    threads, complete, errors, cursor = [], True, [], None
+    try:
+        while True:
+            data = _graphql(_thread_query(), {"owner": owner, "name": name, "number": pr, "after": cursor})
+            connection = ((data.get("repository") or {}).get("pullRequest") or {}).get("reviewThreads")
+            if not isinstance(connection, dict) or not isinstance(connection.get("nodes"), list):
+                raise ValueError("GitHub returned incomplete review thread data")
+            for node in connection["nodes"]:
+                if not isinstance(node, dict) or not node.get("id") or not node.get("path"):
+                    raise ValueError("GitHub returned an invalid review thread")
+                comments_connection = node.get("comments") or {}
+                if not isinstance(comments_connection.get("nodes"), list):
+                    raise ValueError("GitHub returned invalid review thread comments")
+                comments = [_thread_comment(comment) for comment in comments_connection.get("nodes", [])]
+                comment_page = comments_connection.get("pageInfo") or {}
+                comments_complete = True
+                has_comment_page, comment_cursor = _page_values(comment_page)
+                while has_comment_page:
+                    try:
+                        page = _graphql(_thread_comments_query(), {"id": node["id"], "after": comment_cursor})
+                        comment_connection = ((page.get("node") or {}).get("comments") or {})
+                        if not isinstance(comment_connection.get("nodes"), list):
+                            raise ValueError("GitHub returned invalid review thread replies")
+                        comments.extend(_thread_comment(comment) for comment in comment_connection.get("nodes", []))
+                        comment_page = comment_connection.get("pageInfo") or {}
+                        has_comment_page, next_comment_cursor = _page_values(comment_page)
+                        if has_comment_page and (not next_comment_cursor or next_comment_cursor == comment_cursor):
+                            raise ValueError("GitHub returned an invalid review thread reply cursor")
+                        comment_cursor = next_comment_cursor
+                    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError, ValueError) as e:
+                        comments_complete = complete = False
+                        errors.append(getattr(e, "stderr", "") or str(e))
+                        break
+                threads.append({
+                    "id": node.get("id"), "path": node.get("path"), "line": node.get("line"),
+                    "original_line": node.get("originalLine"), "start_line": node.get("startLine"),
+                    "original_start_line": node.get("originalStartLine"), "side": node.get("diffSide"),
+                    "start_side": node.get("startDiffSide"), "resolved": bool(node.get("isResolved")),
+                    "outdated": bool(node.get("isOutdated")), "comments": comments,
+                    "comments_complete": comments_complete,
+                })
+            page_info = connection.get("pageInfo") or {}
+            has_thread_page, next_cursor = _page_values(page_info)
+            if not has_thread_page:
+                break
+            if not next_cursor or next_cursor == cursor:
+                complete = False
+                errors.append("GitHub returned an invalid review thread pagination cursor")
+                break
+            cursor = next_cursor
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError, ValueError) as e:
+        complete = False
+        errors.append(getattr(e, "stderr", "") or str(e))
+    return {"threads": threads, "complete": complete, "error": "; ".join(errors),
+            "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+
 
 
 def main():

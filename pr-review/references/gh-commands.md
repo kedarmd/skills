@@ -5,7 +5,7 @@ All GitHub reads/writes go through `gh`. Do not use raw HTTP when `gh` covers it
 ## Read
 
 ```sh
-gh pr view <PR> --json number,title,body,author,baseRefName,headRefName,baseRefOid,headRefOid,state,mergeStateStatus,labels,reviews,comments,files,additions,deletions,url
+gh pr view <PR> --json number,title,body,author,baseRefName,headRefName,baseRefOid,headRefOid,state,createdAt,updatedAt,closedAt,mergedAt,reviewDecision,mergeStateStatus,labels,reviews,comments,files,additions,deletions,url
 gh pr diff <PR>
 gh pr checks <PR>
 gh pr comments <PR>              # if supported by gh version

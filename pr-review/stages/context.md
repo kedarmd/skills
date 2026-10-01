@@ -22,17 +22,24 @@ When given a PR URL, number, or `repo number`, `gh` is the source of truth.
 See `../references/gh-commands.md`.
 
 ```sh
-gh pr view <PR> --json number,title,body,author,baseRefName,headRefName,baseRefOid,headRefOid,state,mergeStateStatus,labels,reviews,reviewThreads,comments,files,additions,deletions,url,createdAt,updatedAt
+gh pr view <PR> --json number,title,body,author,baseRefName,headRefName,baseRefOid,headRefOid,state,createdAt,updatedAt,closedAt,mergedAt,reviewDecision,mergeStateStatus,labels,reviews,reviewThreads,comments,files,additions,deletions,url
 gh pr diff <PR>
 ```
 
 Collect: repository, PR number, URL, title, description, author, base ref,
-head ref, base SHA, head SHA, merge state, review state, existing reviews,
+head ref, base SHA, head SHA, PR lifecycle, lifecycle dates, aggregate
+review decision, existing reviews,
 review comments, review threads, linked issues (parse body + `gh issue`
 if needed).
 
 Use the exact base SHA and head SHA for the review range. Do not infer the
 range from branch names when SHAs are available.
+
+For lifecycle and aggregate decision, fetch `state,createdAt,updatedAt,closedAt,mergedAt,reviewDecision` with `gh pr view`. Normalize lifecycle to
+`open`, `closed`, or `merged` (a non-null `mergedAt` means `merged`). Normalize
+`APPROVED`, `CHANGES_REQUESTED`, and `REVIEW_REQUIRED`; a complete null
+`reviewDecision` means `no_decision`. Missing fields, command errors, malformed
+JSON, or unknown enum values are incomplete reads, never an empty result.
 
 Also fetch the diff and changed files:
 
