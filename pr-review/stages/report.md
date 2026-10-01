@@ -9,7 +9,9 @@ Start from `../templates/report.html`; `../assets/report.css` and
 `../scripts/validate-report.sh`. For pull requests, the skill starts
 `../scripts/open-report.sh <absolute-report-path>` in a persistent command
 session and returns the served URL; the reviewer should not need to launch
-the helper manually. For other modes, return the validated HTML file directly.
+the helper manually. This one helper serves the report and provides its PR
+context refresh and action endpoints. For other modes, return the validated
+HTML file directly.
 
 ## Design principles
 
@@ -55,7 +57,15 @@ Embed the review JSON in the HTML — no external fetch:
 Must conform to `../schemas/review.schema.json`, including `changes[]` for
 every changed file. Include a concise,
 plain-language `overview.summary` that opens the report; this field is
-required. IDs stable (`F-001`, `S-001`).
+required. IDs stable (`F-001`, `S-001`). The contract is version 1.1 and
+includes `pr_context` (an object containing lifecycle, lifecycle dates,
+aggregate review decision, and `fetched_at`, or `null` until a successful
+read). In PR mode, context is fetched through the local helper when the
+report opens and on explicit Refresh; never poll. Show lifecycle and
+decision as separate indicators, plus loading and last-updated/error state.
+Failed or partial reads retain the previous context and timestamp; without a
+successful read, show unavailable rather than treating missing data as “No
+decision”.
 
 ## Change flow
 

@@ -268,15 +268,19 @@ Write to a temp directory, e.g.
 with `scripts/validate-report.sh`. For a `pull_request` report, the agent
 starts `scripts/open-report.sh <absolute-report-path>` as part of the
 workflow, using the host's command/session tool so the helper remains alive
-while the reviewer uses the report. It serves the report on loopback and
-opens the browser. Return the report URL to the reviewer; do not ask them to
-run the script or keep a terminal open. Keep the helper session running for
-the review, then stop it when the review is complete or the session ends.
+while the reviewer uses the report. This is the same single loopback helper
+that serves the report, refreshes PR context, and handles confirmed PR
+actions; context refresh does not start another service. It opens the browser.
+Return the report URL to the reviewer; do not ask them to run the script or
+keep a terminal open. Keep the helper session running for the review, then
+stop it when the review is complete or the session ends.
 If the host cannot keep a local process alive or open a browser, state that
 limitation and provide the script command as a fallback. For commit-range
 and local reports, there are no GitHub actions, so provide the validated HTML
 file directly. The report also remains readable directly as a standalone
-offline file, but GitHub actions work only through the local helper.
+offline file, but live PR context refresh and GitHub actions work only through
+the local helper; the embedded context remains visible as the last fetched
+snapshot when the file is opened directly.
 
 Report contents: opening summary, clickable SVG change sequence, a Changes
 tab with per-file patches, related findings, dedicated detail views, and

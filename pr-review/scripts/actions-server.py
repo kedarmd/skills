@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 import threading
+from datetime import datetime, timezone
 from urllib.parse import parse_qs, urlsplit
 import webbrowser
 from pathlib import Path
@@ -33,6 +34,71 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def do_GET(self):
         request = urlsplit(self.path)
+        if request.path == "/__pr_review_context":
+            query = parse_qs(request.query)
+            repos, prs = query.get("repo", []), query.get("pr", [])
+            repo = repos[0] if len(repos) == 1 else ""
+            try:
+                pr = int(prs[0]) if len(prs) == 1 else 0
+            except ValueError:
+                pr = 0
+            if not REPO.fullmatch(repo) or pr < 1:
+                return self.send_json(400, {"error": "invalid repository or pull request number"})
+            try:
+                result = subprocess.run(
+                    ["gh", "pr", "view", str(pr), "--repo", repo, "--json",
+                     "state,createdAt,updatedAt,closedAt,mergedAt,reviewDecision"],
+                    capture_output=True, text=True, timeout=30, check=True,
+                )
+                raw = json.loads(result.stdout)
+                required = ("state", "createdAt", "updatedAt", "closedAt", "mergedAt", "reviewDecision")
+                if not isinstance(raw, dict) or any(key not in raw for key in required):
+                    raise ValueError("GitHub returned incomplete pull request context")
+                if not isinstance(raw["state"], str):
+                    raise ValueError("GitHub returned an invalid pull request lifecycle state")
+                lifecycle = raw["state"].lower()
+                if lifecycle not in ("open", "closed"):
+                    raise ValueError("GitHub returned an unknown pull request lifecycle state")
+                dates = (raw["createdAt"], raw["updatedAt"])
+                if any(not isinstance(value, str) or not value for value in dates):
+                    raise ValueError("GitHub returned incomplete pull request dates")
+                lifecycle_dates = [raw["createdAt"], raw["updatedAt"]]
+                for key in ("closedAt", "mergedAt"):
+                    value = raw[key]
+                    if value is not None and (not isinstance(value, str) or not value):
+                        raise ValueError("GitHub returned an invalid pull request lifecycle date")
+                    if value is not None:
+                        lifecycle_dates.append(value)
+                for value in lifecycle_dates:
+                    try:
+                        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                    except ValueError as e:
+                        raise ValueError("GitHub returned an invalid pull request lifecycle date") from e
+                    if parsed.tzinfo is None:
+                        raise ValueError("GitHub returned a pull request date without a timezone")
+                if lifecycle == "closed" and not raw["closedAt"]:
+                    raise ValueError("GitHub returned an incomplete closed pull request")
+                if lifecycle == "open" and raw["mergedAt"]:
+                    raise ValueError("GitHub returned inconsistent pull request lifecycle data")
+                if raw["mergedAt"]:
+                    lifecycle = "merged"
+                decision = raw["reviewDecision"]
+                decisions = {"APPROVED": "approved", "CHANGES_REQUESTED": "changes_requested", "REVIEW_REQUIRED": "review_required"}
+                if decision is not None and (not isinstance(decision, str) or decision not in decisions):
+                    raise ValueError("GitHub returned an unknown aggregate review decision")
+                value = {
+                    "lifecycle": lifecycle,
+                    "created_at": raw["createdAt"],
+                    "updated_at": raw["updatedAt"],
+                    "closed_at": raw["closedAt"],
+                    "merged_at": raw["mergedAt"],
+                    "review_decision": decisions.get(decision, "no_decision"),
+                    "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                }
+                return self.send_json(200, {"context": value})
+            except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError, ValueError) as e:
+                detail = getattr(e, "stderr", "") or str(e)
+                return self.send_json(502, {"error": detail.strip() or "could not read complete pull request context"})
         if request.path == "/__pr_review_merge_methods":
             repo_values = parse_qs(request.query).get("repo", [])
             repo = repo_values[0] if len(repo_values) == 1 else ""
