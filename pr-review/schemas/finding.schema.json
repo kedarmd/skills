@@ -21,7 +21,9 @@
           "start_line": { "type": "integer", "minimum": 1 },
           "end_line": { "type": "integer", "minimum": 1 },
           "side": { "enum": ["LEFT", "RIGHT"] },
-          "commit_sha": { "type": "string", "minLength": 7 }
+          "commit_sha": { "type": "string", "minLength": 7 },
+          "code_excerpt": { "type": "string" },
+          "code_excerpt_start_line": { "type": "integer", "minimum": 1 }
         }
       }
     },
@@ -29,6 +31,7 @@
     "impact": { "type": "string", "minLength": 1 },
     "evidence": { "type": "string", "minLength": 1 },
     "code_excerpt": { "type": "string" },
+    "code_excerpt_start_line": { "type": "integer", "minimum": 1 },
     "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
     "suggestions": {
       "type": "array",

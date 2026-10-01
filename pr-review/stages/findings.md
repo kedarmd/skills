@@ -52,6 +52,12 @@ whole file. For PR comments also record:
 
 `RIGHT` = new/head side, `LEFT` = removed/base side.
 
+For each source excerpt, set `code_excerpt_start_line` to the absolute line
+represented by its first line. If a finding has multiple locations, prefer
+location-specific `code_excerpt` and `code_excerpt_start_line` values.
+Suggestions should include a concise reviewer comment and, when useful, a
+replacement snippet in `code`.
+
 ## 5. Status (follow-up reviews)
 
 - `new` — first seen in this review

@@ -41,6 +41,14 @@ git diff <base-SHA> <head-SHA> --stat
 git diff <base-SHA> <head-SHA> --name-status
 ```
 
+Build the report's required `changes[]` data from this exact range. Include
+one item per changed path with status, additions, deletions, and its unified
+patch. For PRs, use the `gh pr diff` output tied to the resolved head SHA;
+after collecting it, re-read the PR head SHA and restart context collection
+if it changed. For commit/local reviews use `git diff <base> <head>`. Preserve
+each file's patch boundaries so the Changes tab can render accurate line
+anchors.
+
 ## 3. Commit mode
 
 Given `BASE..HEAD` (or `BASE HEAD`):
@@ -105,6 +113,7 @@ Return a structured context object:
   "merge_base": "<sha, if relevant>",
   "pr": { "number": 123, "title": "...", "author": "...", "...": "..." },
   "changed_files": ["src/a.ts"],
+  "changes": [{"path":"src/a.ts","status":"modified","additions":2,"deletions":1,"patch":"@@ ..."}],
   "excluded_files": [{ "file": "dist/b.js", "reason": "generated" }],
   "commits": [{ "sha": "...", "subject": "..." }],
   "previous_review": { "head_sha": "...", "findings": [] },

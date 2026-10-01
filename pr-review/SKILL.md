@@ -63,6 +63,7 @@ The environment MUST provide:
 
 - `git`
 - `gh`
+- `python3` (to open reports with the local review-action helper)
 
 GitHub PR information MUST be obtained using `gh`.
 
@@ -254,8 +255,9 @@ Classify each finding: `new`, `unresolved`, `addressed`, `resolved`,
 Follow `stages/report.md`.
 
 The final deliverable MUST be a single self-contained HTML file with all
-CSS/JS embedded, working offline with no server, Node, Python, CDN, remote
-fonts, or external images. Embed the review JSON in:
+CSS/JS embedded. It remains readable offline without Node, a server, CDN,
+remote fonts, or external images. PR actions use the optional local Python
+helper described below. Embed the review JSON in:
 
 ```html
 <script type="application/json" id="review-data">{ ... }</script>
@@ -264,12 +266,16 @@ fonts, or external images. Embed the review JSON in:
 Write to a temp directory, e.g.
 `/tmp/pr-review/<repo>-<pr-or-range>-<timestamp>/review.html`.
 Validate with `scripts/validate-report.sh`, then open with
-`scripts/open-report.sh` (prefers `xdg-open`, falls back to `open`,
-else prints the path).
+`scripts/open-report.sh`; it serves the report on loopback and opens the
+browser. Keep its terminal open while using PR review actions; stop it with
+Ctrl-C. The report remains readable directly as a standalone offline file,
+but GitHub actions are available only through this local helper.
 
-Report contents: summary, change/flow overview, findings grouped by
-severity, code context with highlighted lines, suggested fixes, metadata —
-plus review actions (comment / request-changes / approve) only in
+Report contents: opening summary, clickable SVG change sequence, a Changes
+tab with per-file patches, related findings, dedicated detail views, and
+line-comment composers, syntax-colored source with highlighted lines,
+suggested comment/code fixes, theme toggle, metadata — plus review actions
+(comment / request-changes / approve) only in
 `pull_request` mode; omit them for commit-range and local reviews, where
 there is no PR to act on. Change-flow nodes must come from actual evidence and
 link to findings/code — never invent architecture. Omit the flow if the
@@ -285,9 +291,10 @@ Compact by default; expand for explanation, impact, evidence, suggestions.
 Follow `stages/actions.md`.
 
 Never execute destructive or externally visible actions merely because the
-report was generated. The reviewer MUST explicitly request each action.
-All GitHub mutations go through `gh`. The browser/report MUST NOT call
-GitHub directly — it produces an action payload; the agent executes it.
+report was generated. Each review mutation requires explicit confirmation
+in the report. All GitHub mutations go through `gh` via the loopback action
+helper; the browser never calls GitHub directly. The helper rejects a stale
+PR head SHA before submitting.
 
 ---
 

@@ -3,7 +3,7 @@
   "$id": "pr-review-review-schema-1.0",
   "title": "pr-review report payload",
   "type": "object",
-  "required": ["schema_version", "review", "summary", "flow", "findings"],
+  "required": ["schema_version", "review", "summary", "flow", "findings", "overview", "changes"],
   "properties": {
     "schema_version": { "const": "1.0" },
     "review": {
@@ -35,7 +35,8 @@
     },
     "overview": {
       "type": "object",
-      "description": "Change summary for the Overview tab; omit fields when unknown.",
+      "description": "Opening review summary and optional overview details.",
+      "required": ["summary"],
       "properties": {
         "summary": { "type": "string" },
         "stats": {
@@ -68,6 +69,7 @@
         "properties": {
           "id": { "type": "string" },
           "label": { "type": "string" },
+          "transition": { "type": "string" },
           "locations": {
             "type": "array",
             "items": {
@@ -76,10 +78,31 @@
               "properties": {
                 "file": { "type": "string" },
                 "start_line": { "type": "integer", "minimum": 1 },
-                "end_line": { "type": "integer", "minimum": 1 }
+                "end_line": { "type": "integer", "minimum": 1 },
+                "code_excerpt": { "type": "string" },
+                "code_excerpt_start_line": { "type": "integer", "minimum": 1 }
               }
             }
           },
+          "finding_ids": { "type": "array", "items": { "type": "string" } },
+          "code_excerpt": { "type": "string" },
+          "code_excerpt_start_line": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "changes": {
+      "type": "array",
+      "description": "Changed file list with unified diffs from the reviewed range.",
+      "items": {
+        "type": "object",
+        "required": ["path", "status", "additions", "deletions", "patch"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "status": { "type": "string" },
+          "additions": { "type": "integer", "minimum": 0 },
+          "deletions": { "type": "integer", "minimum": 0 },
+          "patch": { "type": "string" },
+          "binary": { "type": "boolean" },
           "finding_ids": { "type": "array", "items": { "type": "string" } }
         }
       }

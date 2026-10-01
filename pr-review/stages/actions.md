@@ -3,17 +3,22 @@
 
 # PR Review Actions
 
-Privileged execution layer. The HTML report is presentation only — it never
-touches GitHub. This skill executes GitHub mutations the reviewer explicitly
-requests, via `gh`. See `../references/gh-commands.md`.
+Privileged execution layer. The report never contacts GitHub directly. Its
+loopback-only helper executes the review explicitly confirmed in the report,
+using `gh`. See `../references/gh-commands.md`.
 
-NEVER execute an action merely because it appears in the report. Each action
-requires explicit reviewer selection/confirmation in the current session.
+NEVER execute an action merely because it appears in the report. The report
+requires an explicit final confirmation for each action. Approve and
+request-changes also require a summary. Staged comments are sent only when
+the reviewer confirms a review submission.
 
 ## Preconditions (every action)
 
 Confirm: repository (`owner/repo`), PR number, commit SHA (head SHA the
 finding was validated against), file, line + side, exact comment body.
+The helper checks that the live PR head SHA still matches the report before
+submitting. Reviewers remain responsible for checking that inline lines are
+in the PR diff; GitHub rejects invalid anchors and the error is shown.
 If the PR head moved since the review, re-validate line numbers before
 posting — diff-anchored comments on stale SHAs may land on the wrong lines.
 
@@ -34,6 +39,12 @@ If the location is outside the diff, fall back to a top-level PR comment
 or review-body note referencing `file:lines`, and say so explicitly.
 
 ## 2. Submit review (comments + approve / request changes)
+
+The report submits a single review using `gh api` with `event` set to
+`COMMENT`, `APPROVE`, or `REQUEST_CHANGES`, preserving all inline comments
+in that review. Comments may be staged from finding details or from any
+commentable line in the Changes tab; both views share the same file/line/side
+anchor. It does not use a sequence of independent comment writes.
 
 ```sh
 # post pending review with comments (preferred: single review event)
