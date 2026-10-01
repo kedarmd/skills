@@ -268,8 +268,10 @@ Validate with `scripts/validate-report.sh`, then open with
 else prints the path).
 
 Report contents: summary, change/flow overview, findings grouped by
-severity, code context with highlighted lines, suggested fixes, review
-actions, metadata. Change-flow nodes must come from actual evidence and
+severity, code context with highlighted lines, suggested fixes, metadata —
+plus review actions (comment / request-changes / approve) only in
+`pull_request` mode; omit them for commit-range and local reviews, where
+there is no PR to act on. Change-flow nodes must come from actual evidence and
 link to findings/code — never invent architecture. Omit the flow if the
 change is too small to justify one.
 

@@ -18,12 +18,24 @@ charts, gradients, marketing language, decorative animation.
 ## Structure
 
 ```text
-Header (PR/range, author, base→head, changed files, finding counts)
-Change flow (interactive, source-linked; omit if change is too small)
-Findings (grouped CRITICAL → HIGH → MEDIUM → LOW)
-Review actions (comment / request changes / approve)
-Metadata (SHAs, generated-at, schema version, agent)
+Header (PR/range, author, base→head, finding counts; sticky)
+Tabs: Overview | Findings (n)
+  Overview
+    ├── What changed (from review JSON overview.summary)
+    ├── Stats (files, +/-, commits) + key files
+    └── Change flow as SVG sequence diagram (actors = flow nodes,
+        messages = transitions; finding tags clickable → finding)
+  Findings
+    ├── Queue grouped CRITICAL → HIGH → MEDIUM → LOW
+    ├── Detail pane (code, why/impact/evidence, suggestions,
+    │   comment composer in PR mode, discard always)
+    └── Review actions, PR mode only (payload + submit/approve/request)
+Footer (SHAs, generated-at, schema version, mode note)
 ```
+
+Omit the diagram when the flow is too small to justify one; omit the
+overview sections whose data is absent. Diagram nodes must come from
+actual evidence — never invent architecture.
 
 ## Data contract
 
@@ -37,26 +49,34 @@ Must conform to `../schemas/review.schema.json`. IDs stable (`F-001`, `S-001`).
 
 ## Change flow
 
-Nodes + edges derived from actual evidence (entry points, services, DB,
-response). Each node: label, source locations, related finding IDs.
-Clicking navigates to the finding/code section. Never invent architecture.
+Rendered as an inline SVG sequence diagram derived from the `flow` array:
+actors are flow nodes, messages are the transitions between consecutive
+nodes, and messages into nodes carrying `finding_ids` are highlighted and
+clickable (jump to the queue with that finding selected). No runtime
+libraries — plain generated SVG, so the report stays offline and fast.
+Never invent architecture.
 
 ## Finding interaction
 
-Collapsed: severity badge, title, one-sentence summary, `file:start–end`,
-status badge (follow-ups). Expanded: explanation (`reason`), code excerpt
-with highlighted lines + surrounding context, impact, evidence, suggestions
-(title + explanation + code/diff), actions (add comment / choose suggested
-comment / edit / discard).
+Queue rows show severity badge, title, `file:start`, and status badge
+(follow-ups). Selecting a row paints the detail pane: explanation
+(`reason`), code excerpt, impact, evidence, suggestions, and — in PR
+mode — the comment composer with Add comment; Discard is always present.
 
 Suggested-fix selection populates the comment composer; reviewer can edit
 before submitting. Discard only hides locally unless the agent is asked to
 act.
 
-## Actions (presentation only)
+## Actions (pull_request mode only)
 
-The HTML MUST NOT call GitHub or the shell. It builds an action payload
-the agent executes via `gh` (see `actions.md`):
+Only when `review.mode` is `pull_request`. For `commit_range` and `local`
+reviews there is no PR to post to, so omit the Review Actions section
+entirely, along with the per-finding comment composer and Add-comment
+button (keep Discard for local triage). The footer notes that PR actions
+are unavailable.
+
+When in PR mode, the HTML MUST NOT call GitHub or the shell. It builds an
+action payload the agent executes via `gh` (see `actions.md`):
 
 ```json
 { "action": "comment | request_changes | approve | submit_comments",

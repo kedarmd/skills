@@ -4,62 +4,137 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PR Review</title>
-<!-- SELF-CONTAINED: no external CSS/JS/fonts/images. Edit sources in ../assets/. -->
+<!-- SELF-CONTAINED: no external CSS/JS/fonts/images. Edit freely; validate with ../scripts/validate-report.sh. -->
 <style>
-/*__REPORT_CSS__*/
-:root{color-scheme:light dark;--fg:#1a1a1a;--muted:#666;--bg:#fff;--line:#e2e2e2;--hl:#fff3cd;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-@media(prefers-color-scheme:dark){:root{--fg:#e8e8e8;--muted:#aaa;--bg:#121212;--line:#333;--hl:#4a3f00}}
-body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg);max-width:960px;margin:0 auto;padding:24px;line-height:1.5}
-header{border-bottom:2px solid var(--line);padding-bottom:12px;margin-bottom:16px}
-.counts span{display:inline-block;margin-right:8px;padding:2px 8px;border:1px solid var(--line);border-radius:4px;font-size:13px}
-.flow{border:1px solid var(--line);border-radius:6px;padding:12px;margin:16px 0}
-.flow ol{list-style:none;padding:0;margin:0}
-.flow li{margin:4px 0}.flow a{color:inherit}
-.finding{border:1px solid var(--line);border-radius:6px;margin:12px 0}
-.finding>summary{cursor:pointer;padding:10px 12px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
-.sev{font-size:12px;font-weight:700;padding:1px 6px;border-radius:4px;border:1px solid var(--line)}
-.sev-CRITICAL{background:#7f1d1d;color:#fff}.sev-HIGH{background:#fee2e2}.sev-MEDIUM{background:#fef9c3}.sev-LOW{background:#eef2ff}
+:root{color-scheme:light dark;--fg:#16181d;--muted:#5b6470;--bg:#fff;--panel:#f6f8fa;--line:#dfe3e8;--hl:#fff4d6;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--high:#b42318;--med:#935705;--low:#175cd3;--r:8px}
+@media(prefers-color-scheme:dark){:root{--fg:#e8eaf0;--muted:#9aa3b2;--bg:#13151a;--panel:#1b1e25;--line:#2c313b;--hl:#4a3f00}}
+*{box-sizing:border-box}body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--fg);margin:0;line-height:1.5}
+button{font:inherit;cursor:pointer}
+.badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;padding:1px 7px;border-radius:99px;border:1px solid var(--line)}
+.b-CRITICAL,.b-HIGH{color:var(--high);border-color:currentColor}.b-MEDIUM{color:var(--med);border-color:currentColor}.b-LOW{color:var(--low);border-color:currentColor}
 .status{font-size:12px;color:var(--muted)}
 .loc{font-family:var(--mono);font-size:12px;color:var(--muted)}
-.detail{padding:0 12px 12px}.detail h4{margin:12px 0 4px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
-pre{background:rgba(127,127,127,.08);border:1px solid var(--line);border-radius:4px;padding:8px;overflow-x:auto;font-family:var(--mono);font-size:12.5px}
-pre .hl{background:var(--hl);display:block}
-code{font-family:var(--mono);font-size:.92em}
-.sugg{border-top:1px dashed var(--line);margin-top:8px;padding-top:8px}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-button{padding:6px 10px;border:1px solid var(--line);border-radius:4px;background:transparent;color:inherit;cursor:pointer}
-button.primary{font-weight:700}
-textarea{width:100%;min-height:90px;font-family:var(--mono);font-size:13px;padding:8px}
-#payload{margin-top:16px}
-footer{color:var(--muted);font-size:12px;margin-top:24px;border-top:1px solid var(--line);padding-top:8px}
+pre.code{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:8px;overflow-x:auto;font-family:var(--mono);font-size:12.5px;margin:8px 0}
+.top{border-bottom:1px solid var(--line);padding:10px 20px;background:var(--bg);position:sticky;top:0;z-index:5}
+.top h1{font-size:15px;margin:0;display:inline}
+.counts{margin-left:8px}.counts span{margin-right:6px}
+.tabs{display:flex;gap:4px;margin-top:8px}
+.tabs button{border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:var(--r) var(--r) 0 0;padding:6px 14px;border-bottom:0}
+.tabs button.on{background:var(--bg);font-weight:700}
+.ov{max-width:900px;margin:0 auto;padding:20px}
+.ov h2{font-size:16px;margin:20px 0 8px}
+.ov .stats{display:flex;gap:20px;flex-wrap:wrap;margin:12px 0;font-size:14px}
+.ov .stats b{font-size:18px;display:block}
+.ov ul.files{padding-left:18px;font-size:14px;margin:8px 0}
+.ov ul.files code{font-family:var(--mono);font-size:13px}
+.diagram{border:1px solid var(--line);border-radius:var(--r);padding:12px;margin:16px 0;overflow-x:auto}
+.diagram h3{margin:0 0 8px;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.diagram svg text{font-family:system-ui,sans-serif}
+.dnode{cursor:pointer}.dnode circle{fill:transparent}
+.q{display:grid;grid-template-columns:300px 1fr;min-height:60vh}
+.queue{border-right:1px solid var(--line);padding:8px}
+.qgroup{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:10px 8px 4px}
+.qi{width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:var(--r);padding:8px;display:block;color:var(--fg)}
+.qi:hover{background:var(--panel)}.qi.sel{background:var(--panel);border-color:var(--line)}
+.qi .t{font-size:13.5px;font-weight:600;display:block}
+.detail{padding:20px 28px;max-width:760px}
+.detail h2{margin:0 0 4px;font-size:19px}
+.detail h4{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:14px 0 4px}
+.detail p{margin:6px 0;font-size:14px}
+.detail .opt{display:block;font-size:14px;margin:4px 0}
+textarea.comment{width:100%;min-height:70px;font-family:var(--mono);font-size:13px;padding:8px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg);color:var(--fg);margin-top:8px}
+.rowbtns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.acts{border-top:1px solid var(--line);padding:16px 28px;max-width:820px}
+.acts h3{margin:0 0 4px;font-size:15px}
+footer{color:var(--muted);font-size:12px;padding:12px 20px;border-top:1px solid var(--line)}
 </style>
 </head>
 <body>
-<header>
-<h1 id="title">PR Review</h1>
-<div id="meta"></div>
-<div class="counts" id="counts"></div>
-</header>
-<section class="flow" id="flowsec"><h2>Change flow</h2><ol id="flow"></ol></section>
-<main id="findings"></main>
-<section id="payload">
-<h2>Review actions</h2>
-<p>Select comments below, then copy the action payload for the agent to execute via <code>gh</code>. The browser never calls GitHub directly.</p>
-<div class="actions">
-<button id="approve" class="primary">Approve (needs agent confirm)</button>
-<button id="reqchanges" class="primary">Request changes (needs agent confirm)</button>
-<button id="copypayload">Copy action payload</button>
-</div>
-<textarea id="out" readonly placeholder="Action payload JSON appears here"></textarea>
-<details><summary>Payload preview</summary><pre id="preview">{}</pre></details>
-</section>
+<div class="top"><h1 id="t">Code review</h1><span class="counts" id="c"></span>
+<div class="tabs"><button id="tab-ov">Overview</button><button id="tab-q">Findings (<span id="qn">0</span>)</button></div></div>
+<div id="app"></div>
 <footer id="foot"></footer>
 <script type="application/json" id="review-data">
 {"schema_version":"1.0","review":{"mode":"pull_request","repository":"owner/repo","pull_request":0,"base_sha":"base000","head_sha":"head000"},"summary":{"critical":0,"high":0,"medium":0,"low":0},"flow":[],"findings":[]}
 </script>
 <script>
-/*__REPORT_JS__*/
-(function(){function $(s){return document.querySelector(s)}function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}var data=JSON.parse(document.getElementById("review-data").textContent);var r=data.review||{};document.title="PR Review "+(r.pull_request?"#"+r.pull_request:"")+" "+(r.pr_title||"");$("#title").textContent=(r.pull_request?("PR #"+r.pull_request+" "):"")+(r.pr_title||"Code review");$("#meta").innerHTML=esc(r.repository||"")+" &nbsp; "+esc(r.base_ref||r.base_sha||"")+" → "+esc(r.head_ref||r.head_sha||"")+(r.pr_author?(" &nbsp; @"+r.pr_author):"");var s=data.summary||{};$("#counts").innerHTML=["critical","high","medium","low"].map(function(k){return "<span>"+k+": "+(s[k]||0)+"</span>"}).join("");var order={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3};var fs=(data.findings||[]).slice().sort(function(a,b){return (order[a.severity]-order[b.severity])||(a.id<b.id?-1:1)});var flow=$("#flow");if(!data.flow||!data.flow.length){document.getElementById("flowsec").style.display="none"}else{data.flow.forEach(function(n,i){var li=document.createElement("li");var link=n.finding_ids&&n.finding_ids.length?(" → <a href='#"+n.finding_ids[0]+"'>"+esc(n.finding_ids.join(", "))+"</a>"):"";li.innerHTML=(i>0?"↓<br>":"")+"<strong>"+esc(n.label)+"</strong> "+(n.locations||[]).map(function(l){return "<span class='loc'>"+esc(l.file)+":"+l.start_line+"–"+l.end_line+"</span>"}).join(" ")+link;flow.appendChild(li)})}var main=$("#findings");var groups={};fs.forEach(function(f){(groups[f.severity]=groups[f.severity]||[]).push(f)});Object.keys(groups).sort(function(a,b){return order[a]-order[b]}).forEach(function(sev){var h=document.createElement("h2");h.textContent=sev;main.appendChild(h);groups[sev].forEach(function(f){var d=document.createElement("details");d.className="finding";d.id=f.id;var loc=(f.locations||[]).map(function(l){return l.file+":"+l.start_line+"–"+l.end_line}).join(", ");var sum=document.createElement("summary");sum.innerHTML="<span class='sev sev-"+sev+"'>"+sev+"</span> <strong>"+esc(f.title)+"</strong> <span class='loc'>"+esc(loc)+"</span> <span class='status'>"+esc(f.status||"new")+" "+esc(f.id||"")+"</span><br><span>"+esc(f.summary||"")+"</span>";d.appendChild(sum);var body=document.createElement("div");body.className="detail";function sec(t,v){if(!v)return "";return "<h4>"+t+"</h4><p>"+esc(v)+"</p>"}var code="";if(f.code_excerpt){code="<h4>Code</h4><pre>"+esc(f.code_excerpt)+"</pre>"}var sug=(f.suggestions||[]).map(function(sg,i){return "<div class='sugg'><label><input type='radio' name='"+f.id+"-sug' value='"+sg.id+"'"+(i===0?" checked":"")+"> <strong>"+esc(sg.title)+"</strong></label><p>"+esc(sg.comment||sg.description||"")+"</p>"+(sg.code?"<pre>"+esc(sg.code)+"</pre>":"")+"</div>"}).join("");body.innerHTML=sec("Why",f.reason)+sec("Impact",f.impact)+sec("Evidence",f.evidence)+code+(sug?"<h4>Suggested fixes</h4>"+sug:"")+"<div class='actions'><button data-act='comment'>Add comment</button><button data-act='discard'>Discard</button></div><textarea placeholder='Comment preview / edit before agent posts via gh'></textarea>";d.appendChild(body);var ta=body.querySelector("textarea");var firstSug=(f.suggestions||[])[0];if(firstSug)ta.value=firstSug.comment||"";body.querySelectorAll("input[type=radio]").forEach(function(radio){radio.addEventListener("change",function(){var sel=(f.suggestions||[]).find(function(x){return x.id===radio.value});if(sel)ta.value=sel.comment||""})});body.querySelector("[data-act=comment]").addEventListener("click",function(){addComment(f,ta.value)});body.querySelector("[data-act=discard]").addEventListener("click",function(){d.style.opacity=".45";removeComment(f.id)});main.appendChild(d)})});var payload={action:"submit_comments",repo:r.repository,pr:r.pull_request,commit_sha:r.head_sha,comments:[],body:""};function addComment(f,body){payload.comments=payload.comments.filter(function(c){return c.finding!==f.id});var l=(f.locations||[])[0]||{};payload.comments.push({finding:f.id,file:l.file,line:l.end_line||l.start_line,side:l.side||"RIGHT",body:body});render()}function removeComment(id){payload.comments=payload.comments.filter(function(c){return c.finding!==id});render()}function render(){$("#out").value=JSON.stringify(payload,null,2);$("#preview").textContent=$("#out").value}$("#copypayload").addEventListener("click",function(){render();$("#out").select();document.execCommand&&document.execCommand("copy");if(navigator.clipboard)navigator.clipboard.writeText($("#out").value)});$("#approve").addEventListener("click",function(){payload.action="approve";render();alert("Payload set to approve. Ask the agent to confirm and run via gh.")});$("#reqchanges").addEventListener("click",function(){payload.action="request_changes";render();alert("Payload set to request_changes. Ask the agent to confirm and run via gh.")});$("#foot").textContent="base "+(r.base_sha||"")+" head "+(r.head_sha||"")+" generated "+(r.generated_at||"")+" schema "+(data.schema_version||"");render()})();
+(function(){
+var DATA=JSON.parse(document.getElementById("review-data").textContent);
+var R=DATA.review||{};
+var ISPR=R.mode==="pull_request";
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function codeBlock(ex){return "<pre class='code'>"+esc(ex||"(no excerpt)")+"</pre>"}
+function locStr(l){return esc(l.file)+":"+l.start_line+"–"+l.end_line}
+function countsHTML(){var s=DATA.summary||{};var out="";["critical","high","medium","low"].forEach(function(k){out+=" <span class='badge b-"+k.toUpperCase()+"'>"+k+" "+(s[k]||0)+"</span>"});return out}
+function findingsSorted(){var order={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3};return (DATA.findings||[]).slice().sort(function(a,b){var d=order[a.severity]-order[b.severity];return d||(a.id<b.id?-1:1)})}
+function findById(id){var fs=DATA.findings||[];for(var i=0;i<fs.length;i++){if(fs[i].id===id)return fs[i]}return null}
+/* ---------- header ---------- */
+document.title=(R.pull_request?("PR #"+R.pull_request+" "):"")+(R.pr_title||"Code review");
+document.getElementById("t").textContent=(R.pull_request?("PR #"+R.pull_request+" "):"")+(R.pr_title||"Code review");
+var meta=esc(R.repository||"")+" "+esc(R.base_ref||R.base_sha||"")+" → "+esc(R.head_ref||R.head_sha||"");
+if(R.pr_author)meta+=" @"+esc(R.pr_author);
+document.getElementById("c").innerHTML=countsHTML()+" <span class='loc'>"+meta+"</span>";
+document.getElementById("qn").textContent=(DATA.findings||[]).length;
+/* ---------- tabs ---------- */
+var tab="ov", selId=null;
+function showTab(t){tab=t;document.getElementById("tab-ov").classList.toggle("on",t==="ov");document.getElementById("tab-q").classList.toggle("on",t==="q");var app=document.getElementById("app");if(t==="ov"){app.innerHTML=overviewHTML();drawSequence();}else{app.innerHTML=queueHTML();paintDetail();if(ISPR)wireActions();}}
+document.getElementById("tab-ov").onclick=function(){showTab("ov");};
+document.getElementById("tab-q").onclick=function(){showTab("q");};
+/* ---------- overview tab ---------- */
+function overviewHTML(){var o=R&&DATA.overview?DATA.overview:null;var h="<div class='ov'>";
+if(o&&o.summary)h+="<h2>What changed</h2><p>"+esc(o.summary)+"</p>";
+if(o&&o.stats){var st=o.stats;h+="<div class='stats'>";if(st.files!=null)h+="<div><b>"+st.files+"</b>files</div>";if(st.additions!=null)h+="<div><b>+"+st.additions+"</b>additions</div>";if(st.deletions!=null)h+="<div><b>−"+st.deletions+"</b>deletions</div>";if(st.commits!=null)h+="<div><b>"+st.commits+"</b>commits</div>";h+="</div>";}
+if(o&&o.key_files&&o.key_files.length){h+="<h2>Key files</h2><ul class='files'>";o.key_files.forEach(function(k){h+="<li><code>"+esc(k.file)+"</code>"+(k.why?" — "+esc(k.why):"")+"</li>"});h+="</ul>";}
+h+="<div class='diagram'><h3>Change flow — click a finding tag to jump to it</h3><div id='diagram'></div></div></div>";
+return h;}
+/* sequence diagram derived from flow nodes: actors = nodes, messages = transitions */
+function drawSequence(){var box=document.getElementById("diagram");if(!box)return;var nodes=DATA.flow||[];
+if(!nodes.length){box.innerHTML="<p class='loc'>Flow omitted — change too small to diagram.</p>";return;}
+var X0=90,DX=170;var W=X0+DX*(nodes.length-1)+70;var msgs=[];var i;
+for(i=0;i<nodes.length-1;i++){msgs.push({from:i,to:i+1,label:nodes[i+1].label,findings:nodes[i+1].finding_ids||[]});}
+var H=64+msgs.length*46;var s="<svg width='"+W+"' height='"+H+"' role='img'>";
+for(i=0;i<nodes.length;i++){var x=X0+i*DX;var loc=nodes[i].locations&&nodes[i].locations[0];var nm=nodes[i].label.length>24?nodes[i].label.slice(0,23)+"…":nodes[i].label;
+s+="<rect x='"+(x-60)+"' y='8' width='120' height='34' rx='6' fill='none' stroke='#888'/><text x='"+x+"' y='23' font-size='12' text-anchor='middle'>"+esc(nm)+"</text><text x='"+x+"' y='36' font-size='10' text-anchor='middle' fill='#888'>"+esc(loc?loc.file:"")+"</text><line x1='"+x+"' y1='42' x2='"+x+"' y2='"+(H-8)+"' stroke='#aaa' stroke-dasharray='5 4'/>";}
+msgs.forEach(function(m,k){var y=68+k*46;var x1=X0+m.from*DX,x2=X0+m.to*DX;var l=Math.min(x1,x2),r=Math.max(x1,x2);var fwd=x2>x1;var hot=m.findings.length>0;var col=hot?"#b42318":"#175cd3";
+s+="<line x1='"+l+"' y1='"+y+"' x2='"+r+"' y2='"+y+"' stroke='"+col+"' stroke-width='"+(hot?2.5:1.5)+"'/>";
+s+="<polygon points='"+(fwd?(r-9)+","+(y-5)+" "+(r-9)+","+(y+5)+" "+r+","+y:(l+9)+","+(y-5)+" "+(l+9)+","+(y+5)+" "+l+","+y)+"' fill='"+col+"'/>";
+s+="<text x='"+((l+r)/2)+"' y='"+(y-7)+"' font-size='11' text-anchor='middle' fill='"+col+"'>"+(k+1)+". "+esc(m.label)+(hot?" ["+m.findings.map(esc).join(", ")+"]":"")+"</text>";
+m.findings.forEach(function(fid,j){s+="<circle class='dnode' data-f='"+esc(fid)+"' cx='"+((l+r)/2+j*22-((m.findings.length-1)*11))+"' cy='"+y+"' r='11' fill='transparent'/>";});});
+box.innerHTML=s+"</svg>";
+var dots=box.querySelectorAll(".dnode[data-f]");for(i=0;i<dots.length;i++){(function(c){c.addEventListener("click",function(){showTab("q");select(c.getAttribute("data-f"))});})(dots[i]);}
+}
+/* ---------- findings tab: queue ---------- */
+function queueHTML(){var fs=findingsSorted();var h="<div class='q'><div class='queue'>";
+["CRITICAL","HIGH","MEDIUM","LOW"].forEach(function(sev){var g=fs.filter(function(f){return f.severity===sev});if(!g.length)return;h+="<div class='qgroup'>"+sev+"</div>";
+g.forEach(function(f){var l=(f.locations||[])[0]||{};h+="<button class='qi"+(f.id===selId?" sel":"")+"' data-f='"+f.id+"'><span class='t'>"+esc(f.title)+"</span><span class='loc'>"+esc(l.file||"")+":"+ (l.start_line||"?")+" · "+esc(f.status||"new")+"</span></button>";});});
+h+="</div><div class='detail' id='det'></div></div>";
+if(ISPR)h+="<div class='acts'><h3>Review actions</h3><p class='loc'>The browser never calls GitHub — the agent executes this payload via gh, only on your explicit request.</p><div class='rowbtns'><button id='a-submit'>Submit comments</button><button id='a-approve'>Approve</button><button id='a-req'>Request changes</button><button id='a-copy'>Copy payload</button></div><pre class='code' id='a-prev'></pre></div>";
+return h;}
+function paintDetail(){var f=findById(selId)||(DATA.findings||[])[0];if(!f)return;selId=f.id;var det=document.getElementById("det");if(!det)return;var l=(f.locations||[])[0]||{};
+var h="<h2>"+esc(f.title)+"</h2><div><span class='badge b-"+f.severity+"'>"+f.severity+"</span> <span class='loc'>"+locStr({file:l.file||"?",start_line:l.start_line||1,end_line:l.end_line||l.start_line||1})+" · "+esc(f.status||"new")+"</span></div><p>"+esc(f.summary)+"</p>";
+h+=codeBlock(f.code_excerpt)+"<h4>Why</h4><p>"+esc(f.reason)+"</p><h4>Impact</h4><p>"+esc(f.impact)+"</p><h4>Evidence</h4><p>"+esc(f.evidence)+"</p>";
+if(f.suggestions&&f.suggestions.length){h+="<h4>Suggested fixes</h4>";f.suggestions.forEach(function(sg,ix){h+="<label class='opt'><input type='radio' name='sug' value='"+sg.id+"'"+(ix===0?" checked":"")+"> <b>"+esc(sg.title)+"</b> — "+esc(sg.comment||sg.description||"")+"</label>";});}
+if(ISPR)h+="<div class='rowbtns'><button id='d-add'>Add comment</button><button id='d-drop'>Discard</button></div><textarea class='comment' id='d-ta'></textarea>";
+else h+="<div class='rowbtns'><button id='d-drop'>Discard</button></div>";
+det.innerHTML=h;
+var ta=document.getElementById("d-ta");var first=(f.suggestions||[])[0];if(ta&&first)ta.value=first.comment||"";
+var radios=det.querySelectorAll("input[name=sug]");for(var ri=0;ri<radios.length;ri++){(function(radio){radio.onchange=function(){var list=f.suggestions||[];for(var k=0;k<list.length;k++){if(list[k].id===radio.value&&ta)ta.value=list[k].comment||""}};})(radios[ri]);}
+var add=document.getElementById("d-add");if(add)add.onclick=function(){payload.comments=payload.comments.filter(function(c){return c.finding!==f.id;});var ll=(f.locations||[])[0]||{};payload.comments.push({finding:f.id,file:ll.file,line:ll.end_line||ll.start_line,side:ll.side||"RIGHT",body:ta?ta.value:""});renderPayload();};
+var drop=document.getElementById("d-drop");if(drop)drop.onclick=function(){payload.comments=payload.comments.filter(function(c){return c.finding!==f.id;});renderPayload();};}
+function select(id){selId=id;paintDetail();}
+/* ---------- review-action payload (PR mode only) ---------- */
+var payload={action:"submit_comments",repo:R.repository,pr:R.pull_request,commit_sha:R.head_sha,comments:[],body:""};
+function renderPayload(){var p=document.getElementById("a-prev");if(p)p.textContent=JSON.stringify(payload);var st=document.getElementById("foot-state");if(st)st.textContent="payload "+payload.action+":"+payload.comments.length;}
+function wireActions(){var m={"a-submit":"submit_comments","a-approve":"approve","a-req":"request_changes"};Object.keys(m).forEach(function(id){var b=document.getElementById(id);if(b)b.onclick=function(){payload.action=m[id];renderPayload();};});var c=document.getElementById("a-copy");if(c)c.onclick=function(){renderPayload();if(navigator.clipboard)navigator.clipboard.writeText(JSON.stringify(payload));};renderPayload();}
+/* ---------- queue navigation + footer ---------- */
+document.addEventListener("click",function(e){var b=e.target&&e.target.closest?e.target.closest(".qi"):null;if(b){var items=document.querySelectorAll(".qi");for(var i=0;i<items.length;i++)items[i].classList.remove("sel");b.classList.add("sel");select(b.getAttribute("data-f"));}});
+var footMsg="base "+(R.base_sha||"")+" head "+(R.head_sha||"")+" generated "+(R.generated_at||"")+" schema "+(DATA.schema_version||"");
+if(!ISPR)footMsg+=" — "+(R.mode||"local")+" review: no PR actions available";
+footMsg+=" ";
+document.getElementById("foot").textContent=footMsg;
+var fspan=document.createElement("span");fspan.id="foot-state";document.getElementById("foot").appendChild(fspan);
+showTab("ov");
+})();
 </script>
 </body>
 </html>

@@ -33,6 +33,33 @@
         "low": { "type": "integer", "minimum": 0 }
       }
     },
+    "overview": {
+      "type": "object",
+      "description": "Change summary for the Overview tab; omit fields when unknown.",
+      "properties": {
+        "summary": { "type": "string" },
+        "stats": {
+          "type": "object",
+          "properties": {
+            "files": { "type": "integer", "minimum": 0 },
+            "additions": { "type": "integer", "minimum": 0 },
+            "deletions": { "type": "integer", "minimum": 0 },
+            "commits": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "key_files": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["file"],
+            "properties": {
+              "file": { "type": "string" },
+              "why": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
     "flow": {
       "type": "array",
       "items": {

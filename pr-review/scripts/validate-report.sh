@@ -7,8 +7,10 @@ import json, re, sys
 path = sys.argv[1]
 html = open(path, encoding='utf-8').read()
 errs = []
-for token in ['id="review-data"', 'id="findings"', 'id="payload"']:
+for token in ['id="review-data"', 'id="app"', 'id="tab-q"', 'id="tab-ov"']:
     if token not in html: errs.append(f'missing {token}')
+for token in ['a-prev', 'd-add', 'a-approve', 'diagram']:
+    if token not in html: errs.append(f'missing action/diagram hook: {token}')
 m = re.search(r'<script type="application/json" id="review-data">(.*?)</script>', html, re.S)
 if not m:
     errs.append('review-data JSON block not found')
