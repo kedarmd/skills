@@ -1,0 +1,136 @@
+<!doctype html>
+<!-- PROTOTYPE — throwaway. Three variants of the pr-review HTML report, switchable via ?variant=a|b|c. Not production code. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE — pr-review report variants</title>
+<style>
+:root{color-scheme:light dark;--fg:#16181d;--muted:#5b6470;--bg:#fff;--panel:#f6f8fa;--line:#dfe3e8;--hl:#fff4d6;--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;--crit:#b42318;--high:#b42318;--med:#935705;--low:#175cd3;--r:8px}
+@media(prefers-color-scheme:dark){:root{--fg:#e8eaf0;--muted:#9aa3b2;--bg:#13151a;--panel:#1b1e25;--line:#2c313b;--hl:#4a3f00}}
+*{box-sizing:border-box}body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--fg);margin:0;line-height:1.5;padding-bottom:90px}
+button{font:inherit;cursor:pointer}
+.badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;padding:1px 7px;border-radius:99px;border:1px solid var(--line)}
+.b-CRITICAL,.b-HIGH{color:var(--high);border-color:currentColor}.b-MEDIUM{color:var(--med);border-color:currentColor}.b-LOW{color:var(--low);border-color:currentColor}
+.loc{font-family:var(--mono);font-size:12px;color:var(--muted)}
+pre.code{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:0;overflow-x:auto;font-family:var(--mono);font-size:12.5px;margin:8px 0}
+pre.code .ln{display:block;padding:0 12px 0 0;white-space:pre}
+pre.code .ln::before{content:attr(data-ln);display:inline-block;width:3.2em;text-align:right;margin-right:12px;color:var(--muted);user-select:none}
+pre.code .ln.hl{background:var(--hl)}
+/* ===== Variant A: code threads ===== */
+.va-head{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 20px;z-index:5}
+.va-head h1{font-size:16px;margin:0}.va-wrap{max-width:980px;margin:0 auto;padding:16px 20px}
+.va-flow{display:flex;gap:0;align-items:center;margin:12px 0;flex-wrap:wrap}
+.va-flow .node{border:1px solid var(--line);border-radius:var(--r);padding:6px 12px;background:var(--panel);font-size:13px}
+.va-flow .arr{margin:0 8px;color:var(--muted)}
+.va-file{border:1px solid var(--line);border-radius:var(--r);margin:20px 0;overflow:hidden}
+.va-filebar{background:var(--panel);border-bottom:1px solid var(--line);padding:8px 12px;font-family:var(--mono);font-size:13px;display:flex;justify-content:space-between;gap:8px}
+.va-thread{border-top:2px solid var(--high);margin:0 12px 12px;border-left:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0 0 var(--r) var(--r);padding:10px 12px}
+.va-thread.med{border-top-color:var(--med)}.va-thread.low{border-top-color:var(--low)}
+.va-thread h3{margin:0 0 4px;font-size:14px}.va-thread p{margin:6px 0;font-size:13.5px}
+.va-thread .row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+/* ===== Variant B: triage queue ===== */
+.vb-shell{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 60px)}
+.vb-top{grid-column:1/-1;border-bottom:1px solid var(--line);padding:10px 20px;display:flex;gap:12px;align-items:center;background:var(--bg);position:sticky;top:0;z-index:5}
+.vb-top h1{font-size:15px;margin:0}.vb-progress{margin-left:auto;font-size:13px;color:var(--muted)}
+.vb-queue{border-right:1px solid var(--line);overflow-y:auto;padding:8px}
+.vb-qgroup{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:10px 8px 4px}
+.vb-item{width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:var(--r);padding:8px;display:block}
+.vb-item:hover{background:var(--panel)}.vb-item.sel{background:var(--panel);border-color:var(--line)}
+.vb-item.done{opacity:.45}.vb-item .t{font-size:13.5px;font-weight:600;display:block}
+.vb-detail{padding:20px 28px;max-width:760px}.vb-detail h2{margin:0 0 4px;font-size:20px}
+.vb-detail h4{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:16px 0 4px}
+.vb-detail .row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+textarea.comment{width:100%;min-height:80px;font-family:var(--mono);font-size:13px;padding:8px;border:1px solid var(--line);border-radius:var(--r);background:var(--bg);color:var(--fg)}
+/* ===== Variant C: report document ===== */
+.vc-doc{max-width:720px;margin:0 auto;padding:32px 24px}
+.vc-doc h1{font-size:26px;margin:0}.vc-doc .sub{color:var(--muted);margin:4px 0 20px}
+.vc-sum{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+.vc-sum th,.vc-sum td{border:1px solid var(--line);padding:6px 10px;text-align:left}
+.vc-sum th{background:var(--panel)}
+.vc-timeline{list-style:none;padding:0;margin:16px 0;border-left:2px solid var(--line)}
+.vc-timeline li{padding:4px 0 4px 16px;position:relative;font-size:14px}
+.vc-timeline li::before{content:"";position:absolute;left:-6px;top:12px;width:10px;height:10px;border-radius:50%;background:var(--bg);border:2px solid var(--muted)}
+.vc-finding{border-left:3px solid var(--high);padding:0 0 0 16px;margin:28px 0}
+.vc-finding.med{border-left-color:var(--med)}.vc-finding.low{border-left-color:var(--low)}
+.vc-finding h3{margin:0;font-size:17px}.vc-finding dl{margin:8px 0;font-size:14px}
+.vc-finding dt{font-weight:700;margin-top:8px}.vc-finding dd{margin:2px 0 0}
+.vc-finding .copyrow{margin-top:8px}
+/* ===== prototype switcher ===== */
+#proto-bar{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:#111;color:#fff;border-radius:99px;padding:8px 8px;display:flex;gap:4px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.35);z-index:99;font-size:14px}
+#proto-bar button{background:#333;color:#fff;border:0;border-radius:99px;padding:6px 12px}
+#proto-bar button:hover{background:#555}
+#proto-bar .lbl{padding:0 10px;white-space:nowrap}
+#proto-bar .lbl small{opacity:.6}
+#proto-state{position:fixed;left:16px;bottom:16px;background:#111;color:#bbb;border-radius:8px;padding:6px 10px;font-family:var(--mono);font-size:11px;z-index:99}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="proto-bar">
+  <button id="p-prev" title="Previous variant (←)">←</button>
+  <span class="lbl" id="p-label"></span>
+  <button id="p-next" title="Next variant (→)">→</button>
+</div>
+<div id="proto-state"></div>
+<script type="application/json" id="review-data">
+{"schema_version":"1.0","review":{"mode":"pull_request","repository":"acme/auth","pull_request":183,"pr_title":"Add session refresh","pr_author":"kedarmd","base_ref":"main","head_ref":"feature/session-refresh","base_sha":"a1b2c3d","head_sha":"e4f5g6h","generated_at":"2026-10-02"},"summary":{"critical":0,"high":1,"medium":2,"low":1},"flow":[{"id":"req","label":"POST /sessions/refresh","locations":[{"file":"src/api/session.ts","start_line":20,"end_line":34}],"finding_ids":[]},{"id":"svc","label":"Auth service refresh","locations":[{"file":"src/auth/session.ts","start_line":70,"end_line":78}],"finding_ids":["F-001","F-004"]},{"id":"store","label":"Session store","locations":[{"file":"src/db/sessions.ts","start_line":10,"end_line":22}],"finding_ids":["F-002"]}],"findings":[{"id":"F-001","severity":"HIGH","status":"new","title":"Session expiry is not validated on refresh","summary":"The refresh path accepts an already-expired session and extends it.","locations":[{"file":"src/auth/session.ts","start_line":70,"end_line":78,"side":"RIGHT","commit_sha":"e4f5g6h"}],"reason":"refreshSession loads the session and writes a new expiresAt without checking whether the existing session already expired.","impact":"A stolen or stale token can be revived indefinitely; expiry stops being a containment boundary.","evidence":"No comparison of session.expiresAt against now() on the refresh path; only saveSession is called.","code_excerpt":"70  async function refreshSession(sessionId: string) {\n71    const session = await getSession(sessionId);\n72    if (!session) throw new AuthError(\"unknown session\");\n73  \n74    const ttl = 60 * 30;\n75    session.expiresAt = Date.now() + ttl * 1000;\n76    await saveSession(session);\n77    return session;\n78  }","confidence":0.93,"suggestions":[{"id":"S-001","title":"Reject expired sessions","comment":"refreshSession should reject already-expired sessions instead of extending them.","code":"if (session.expiresAt < Date.now()) throw new AuthError(\"session expired\");"},{"id":"S-002","title":"Move check into SessionService","comment":"Centralise expiry validation in SessionService so all callers get it.","code":"sessionService.assertLive(session);"}]},{"id":"F-002","severity":"MEDIUM","status":"new","title":"Refresh token reuse is not detected","summary":"A used refresh token can be replayed within its window.","locations":[{"file":"src/auth/refresh.ts","start_line":40,"end_line":55,"side":"RIGHT","commit_sha":"e4f5g6h"}],"reason":"Token rotation issues a new token but never marks the old one consumed, and there is no reuse-detection alarm.","impact":"Token theft is harder to notice; replay succeeds until natural expiry.","evidence":"No consumed_at / jti blocklist write on the rotation path in refresh.ts.","code_excerpt":"40  async function rotate(refreshToken: string) {\n41    const tok = await verify(refreshToken);\n42    return issue(tok.sub);\n43  }","confidence":0.81,"suggestions":[{"id":"S-001","title":"Track token jti on use","comment":"Record the refresh token jti as consumed during rotation and reject replays.","code":"await consumeToken(tok.jti);"}]},{"id":"F-003","severity":"MEDIUM","status":"unresolved","title":"Error swallowed in session cleanup","summary":"Cleanup failures are silently ignored, hiding store outages.","locations":[{"file":"src/auth/session.ts","start_line":120,"end_line":128,"side":"RIGHT","commit_sha":"e4f5g6h"}],"reason":"The catch block around deleteExpiredSessions is empty, so store errors never surface.","impact":"A failing session store looks healthy; expired sessions accumulate.","evidence":"Empty catch block at session.ts:124-126, unchanged by this PR but on the touched path.","code_excerpt":"120 try {\n121   await deleteExpiredSessions();\n122 } catch (err) {\n123   // ignore\n124 }","confidence":0.74,"suggestions":[]},{"id":"F-004","severity":"LOW","status":"new","title":"Magic number for session TTL","summary":"The 30-minute TTL is a bare literal with no name or config.","locations":[{"file":"src/auth/session.ts","start_line":74,"end_line":74,"side":"RIGHT","commit_sha":"e4f5g6h"}],"reason":"ttl is computed inline as 60 * 30 with no named constant, so policy changes require code hunts.","impact":"Minor: slower policy changes, risk of divergent TTLs across call sites.","evidence":"Line 74 in the new code; no SESSION_TTL constant exists in the module.","code_excerpt":"74    const ttl = 60 * 30;","confidence":0.88,"suggestions":[{"id":"S-001","title":"Name the TTL constant","comment":"Extract a named SESSION_TTL_SECONDS constant next to the session config.","code":"const SESSION_TTL_SECONDS = 60 * 30;"}]}]}
+</script>
+<script>
+(function(){
+var DATA=JSON.parse(document.getElementById("review-data").textContent);
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function codeBlock(ex){var lines=String(ex||"").split("\n");return "<pre class='code'>"+lines.map(function(l){var m=l.match(/^(\d+)(.*)$/);if(!m)return "<span class='ln'>"+esc(l)+"</span>";return "<span class='ln hl' data-ln='"+m[1]+"'>"+esc(m[1]+m[2])+"</span>"}).join("\n")+"</pre>"}
+function counts(r){var s=r.summary||{};return ["CRITICAL","HIGH","MEDIUM","LOW"].map(function(k){return "<span class='badge b-"+k+"'>"+k+" "+(s[k.toLowerCase()]||0)+"</span>"}).join(" ")}
+/* ---------- Variant A: code threads ---------- */
+function renderA(el,d){var r=d.review;var byFile={};(d.findings||[]).forEach(function(f){(f.locations||[]).forEach(function(l){(byFile[l.file]=byFile[l.file]||[]).push(f)})});
+var files=Object.keys(byFile);
+el.innerHTML="<div class='va-head'><h1>PR #"+r.pull_request+" "+esc(r.pr_title)+"</h1><div>"+counts(d)+"</div></div>"
++"<div class='va-wrap'><div class='va-flow'>"+(d.flow||[]).map(function(n,i){return (i?"<span class='arr'>→</span>":"")+"<span class='node'>"+esc(n.label)+"</span>"}).join("")+"</div>"
++files.map(function(f){return "<section class='va-file'><div class='va-filebar'><span>"+esc(f)+"</span><span>"+byFile[f].length+" finding(s)</span></div><div style='padding:0 12px'>"
++codeBlock((byFile[f][0]||{}).code_excerpt)
++byFile[f].map(function(x){return "<div class='va-thread "+x.severity.toLowerCase()+"'><h3><span class='badge b-"+x.severity+"'>"+x.severity+"</span> "+esc(x.title)+"</h3><p>"+esc(x.summary)+"</p><details><summary>Why / impact / fix</summary><p>"+esc(x.reason)+"</p><p><b>Impact:</b> "+esc(x.impact)+"</p>"+(x.suggestions||[]).map(function(s){return "<p><b>"+esc(s.title)+":</b> "+esc(s.comment)+"</p>"}).join("")+"</details><div class='row'><button data-c='"+x.id+"'>Add comment</button><button>Discard</button></div></div>"}).join("")
++"</div></section>"}).join("")+"</div>"}
+/* ---------- Variant B: triage queue ---------- */
+var reviewed={};
+function renderB(el,d){var r=d.review;var fs=(d.findings||[]).slice();var order={CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3};fs.sort(function(a,b){return order[a.severity]-order[b.severity]});
+var sel=fs[0];
+el.innerHTML="<div class='vb-shell'><div class='vb-top'><h1>PR #"+r.pull_request+" "+esc(r.pr_title)+"</h1>"+counts(d)+"<span class='vb-progress' id='vb-prog'></span></div>"
++"<div class='vb-queue'>"+["CRITICAL","HIGH","MEDIUM","LOW"].map(function(s){var g=fs.filter(function(f){return f.severity===s});if(!g.length)return "";return "<div class='vb-qgroup'>"+s+"</div>"+g.map(function(f){return "<button class='vb-item"+(reviewed[f.id]?" done":"")+"' data-f='"+f.id+"'><span class='t'>"+(reviewed[f.id]?"✓ ":"")+esc(f.title)+"</span><span class='loc'>"+esc(f.locations[0].file)+":"+f.locations[0].start_line+"–"+f.locations[0].end_line+"</span></button>"}).join("")}).join("")+"</div>"
++"<div class='vb-detail' id='vb-detail'></div></div>";
+function paint(f){var det=document.getElementById("vb-detail");if(!det)return;
+det.innerHTML="<h2>"+esc(f.title)+"</h2><div><span class='badge b-"+f.severity+"'>"+f.severity+"</span> <span class='loc'>"+esc(f.locations[0].file)+":"+f.locations[0].start_line+"–"+f.locations[0].end_line+" · "+esc(f.status)+"</span></div>"
++"<p>"+esc(f.summary)+"</p>"+codeBlock(f.code_excerpt)
++"<h4>Why</h4><p>"+esc(f.reason)+"</p><h4>Impact</h4><p>"+esc(f.impact)+"</p>"
++((f.suggestions||[]).map(function(s){return "<h4>Suggestion — "+esc(s.title)+"</h4><p>"+esc(s.comment)+"</p>"+(s.code?"<pre class='code'><span class='ln'>"+esc(s.code)+"</span></pre>":"")}).join(""))
++"<div class='row'><button id='vb-comment'>Add comment</button><button id='vb-done'>Mark reviewed</button><button id='vb-discard'>Discard</button></div><textarea class='comment' id='vb-ta'></textarea>";
+var done=document.getElementById("vb-done");if(done)done.onclick=function(){reviewed[f.id]=true;renderB(el,d);paint(fs.filter(function(x){return !reviewed[x.id]})[0]||f)};
+var dis=document.getElementById("vb-discard");if(dis)dis.onclick=function(){reviewed[f.id]=true;renderB(el,d)}}
+paint(sel);
+el.querySelectorAll(".vb-item").forEach(function(b){b.onclick=function(){el.querySelectorAll(".vb-item").forEach(function(x){x.classList.remove("sel")});b.classList.add("sel");var f=fs.filter(function(x){return x.id===b.getAttribute("data-f")})[0];paint(f);state(f.id)}});
+var prog=document.getElementById("vb-prog");if(prog)prog.textContent=Object.keys(reviewed).length+" of "+fs.length+" reviewed"}
+/* ---------- Variant C: report document ---------- */
+function renderC(el,d){var r=d.review;
+el.innerHTML="<article class='vc-doc'><h1>Code review — PR #"+r.pull_request+"</h1><p class='sub'>"+esc(r.pr_title)+" · "+esc(r.repository)+" · "+esc(r.base_ref)+" → "+esc(r.head_ref)+" · @"+esc(r.pr_author)+"</p>"
++"<table class='vc-sum'><tr><th>Severity</th><th>Count</th></tr>"+["critical","high","medium","low"].map(function(k){return "<tr><td>"+k+"</td><td>"+(d.summary[k]||0)+"</td></tr>"}).join("")+"</table>"
++"<h2>Change flow</h2><ol class='vc-timeline'>"+(d.flow||[]).map(function(n){return "<li><b>"+esc(n.label)+"</b> <span class='loc'>"+(n.locations||[]).map(function(l){return esc(l.file)+":"+l.start_line}).join(", ")+"</span></li>"}).join("")+"</ol>"
++"<h2>Findings</h2>"+(d.findings||[]).map(function(f,i){return "<section class='vc-finding "+f.severity.toLowerCase()+"'><h3>"+(i+1)+". "+esc(f.title)+"</h3><div><span class='badge b-"+f.severity+"'>"+f.severity+"</span> <span class='loc'>"+esc(f.locations[0].file)+":"+f.locations[0].start_line+"–"+f.locations[0].end_line+" · "+esc(f.status)+"</span></div>"
++codeBlock(f.code_excerpt)+"<dl><dt>Why</dt><dd>"+esc(f.reason)+"</dd><dt>Impact</dt><dd>"+esc(f.impact)+"</dd><dt>Evidence</dt><dd>"+esc(f.evidence)+"</dd></dl>"
++((f.suggestions||[]).map(function(s){return "<p><b>Suggestion — "+esc(s.title)+":</b> "+esc(s.comment)+"</p>"}).join(""))
++"<div class='copyrow'><button data-copy='"+esc((f.suggestions[0]||{}).comment||f.summary)+"'>Copy comment for agent</button></div></section>"}).join("")
++"<p class='loc'>base "+esc(r.base_sha)+" · head "+esc(r.head_sha)+" · generated "+esc(r.generated_at)+"</p></article>";
+el.querySelectorAll("[data-copy]").forEach(function(b){b.onclick=function(){if(navigator.clipboard)navigator.clipboard.writeText(b.getAttribute("data-copy"));b.textContent="Copied — paste to the agent"}})}
+/* ---------- switcher ---------- */
+var VARIANTS={a:{name:"Code threads",render:renderA},b:{name:"Triage queue",render:renderB},c:{name:"Report document",render:renderC}};
+var keys=Object.keys(VARIANTS);
+var cur=(new URLSearchParams(location.search).get("variant")||"a");if(!VARIANTS[cur])cur="a";
+function state(extra){document.getElementById("proto-state").textContent="variant="+cur+" findings="+DATA.findings.length+(extra?" sel="+extra:"")}
+function show(k){cur=k;try{history.replaceState(null,"","?variant="+k)}catch(e){}document.getElementById("app").innerHTML="";VARIANTS[k].render(document.getElementById("app"),DATA);document.getElementById("p-label").innerHTML="<b>"+k.toUpperCase()+"</b> — "+VARIANTS[k].name+" <small>prototype</small>";state()}
+document.getElementById("p-prev").onclick=function(){show(keys[(keys.indexOf(cur)+keys.length-1)%keys.length])};
+document.getElementById("p-next").onclick=function(){show(keys[(keys.indexOf(cur)+1)%keys.length])};
+document.addEventListener("keydown",function(e){var t=e.target&&e.target.tagName;if(t==="INPUT"||t==="TEXTAREA")return;if(e.key==="ArrowLeft")document.getElementById("p-prev").click();if(e.key==="ArrowRight")document.getElementById("p-next").click()});
+show(cur);
+})();
+</script>
+</body>
+</html>
