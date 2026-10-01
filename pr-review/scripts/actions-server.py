@@ -49,6 +49,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if source not in ("reviews", "comments"):
                 return self.send_json(400, {"error": "source must be reviews or comments"})
             return self.send_json(200, {"discussion": fetch_discussion(repo, pr, source)})
+        if request.path == "/__pr_review_threads":
+            query = parse_qs(request.query)
+            repos, prs = query.get("repo", []), query.get("pr", [])
+            repo = repos[0] if len(repos) == 1 else ""
+            try:
+                pr = int(prs[0]) if len(prs) == 1 else 0
+            except ValueError:
+                pr = 0
+            if not REPO.fullmatch(repo) or pr < 1:
+                return self.send_json(400, {"error": "invalid repository or pull request number"})
+            return self.send_json(200, {"thread_data": fetch_review_threads(repo, pr)})
         if request.path == "/__pr_review_context":
             query = parse_qs(request.query)
             repos, prs = query.get("repo", []), query.get("pr", [])
@@ -141,8 +152,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
         self.wfile.write(data)
-
-
 
     def do_POST(self):
         if self.path != "/__pr_review_action":
@@ -246,6 +255,114 @@ def fetch_discussion(repo, pr, source):
     except (subprocess.TimeoutExpired, FileNotFoundError, json.JSONDecodeError, ValueError) as e:
         state = {"items": [], "complete": False, "error": str(e)}
     return {source: state["items"], "sources": {source: state},
+            "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+
+
+def _graphql(query, variables):
+    args = ["gh", "api", "graphql", "-f", "query=" + query]
+    for name, value in variables.items():
+        args.extend(["-F", f"{name}={value if value is not None else 'null'}"])
+    result = subprocess.run(args, capture_output=True, text=True, timeout=60, check=True)
+    value = json.loads(result.stdout)
+    if not isinstance(value, dict) or value.get("errors"):
+        raise ValueError("GitHub returned an incomplete GraphQL response")
+    return value.get("data") or {}
+
+
+def _thread_comment(comment):
+    author = comment.get("author") or {}
+    reply_to = comment.get("replyTo") or {}
+    return {
+        "id": comment.get("id"), "reply_to_id": reply_to.get("id"),
+        "body": comment.get("body") or "", "created_at": comment.get("createdAt"),
+        "updated_at": comment.get("updatedAt"), "author": author.get("login") or "Unknown author",
+        "url": comment.get("url"), "path": comment.get("path"), "line": comment.get("line"),
+        "original_line": comment.get("originalLine"),
+    }
+
+
+def _thread_query():
+    return """query($owner:String!,$name:String!,$number:Int!,$after:String){
+      repository(owner:$owner,name:$name){pullRequest(number:$number){
+        reviewThreads(first:100,after:$after){nodes{
+          id path line originalLine startLine originalStartLine diffSide startDiffSide isResolved isOutdated
+          comments(first:100){nodes{id body createdAt updatedAt url path line originalLine author{login} replyTo{id}}
+            pageInfo{hasNextPage endCursor}}
+        } pageInfo{hasNextPage endCursor}}
+      }}
+    }"""
+
+
+def _page_values(page_info):
+    if (not isinstance(page_info, dict) or "hasNextPage" not in page_info
+            or "endCursor" not in page_info or not isinstance(page_info["hasNextPage"], bool)):
+        raise ValueError("GitHub returned incomplete review thread pagination data")
+    return page_info["hasNextPage"], page_info["endCursor"]
+
+
+def _thread_comments_query():
+    return """query($id:ID!,$after:String){node(id:$id){... on PullRequestReviewThread{
+      comments(first:100,after:$after){nodes{id body createdAt updatedAt url path line originalLine author{login} replyTo{id}}
+        pageInfo{hasNextPage endCursor}}
+    }}}"""
+
+
+def fetch_review_threads(repo, pr):
+    owner, name = repo.split("/", 1)
+    threads, complete, errors, cursor = [], True, [], None
+    try:
+        while True:
+            data = _graphql(_thread_query(), {"owner": owner, "name": name, "number": pr, "after": cursor})
+            connection = ((data.get("repository") or {}).get("pullRequest") or {}).get("reviewThreads")
+            if not isinstance(connection, dict) or not isinstance(connection.get("nodes"), list):
+                raise ValueError("GitHub returned incomplete review thread data")
+            for node in connection["nodes"]:
+                if not isinstance(node, dict) or not node.get("id") or not node.get("path"):
+                    raise ValueError("GitHub returned an invalid review thread")
+                comments_connection = node.get("comments") or {}
+                if not isinstance(comments_connection.get("nodes"), list):
+                    raise ValueError("GitHub returned invalid review thread comments")
+                comments = [_thread_comment(comment) for comment in comments_connection.get("nodes", [])]
+                comment_page = comments_connection.get("pageInfo") or {}
+                comments_complete = True
+                has_comment_page, comment_cursor = _page_values(comment_page)
+                while has_comment_page:
+                    try:
+                        page = _graphql(_thread_comments_query(), {"id": node["id"], "after": comment_cursor})
+                        comment_connection = ((page.get("node") or {}).get("comments") or {})
+                        if not isinstance(comment_connection.get("nodes"), list):
+                            raise ValueError("GitHub returned invalid review thread replies")
+                        comments.extend(_thread_comment(comment) for comment in comment_connection.get("nodes", []))
+                        comment_page = comment_connection.get("pageInfo") or {}
+                        has_comment_page, next_comment_cursor = _page_values(comment_page)
+                        if has_comment_page and (not next_comment_cursor or next_comment_cursor == comment_cursor):
+                            raise ValueError("GitHub returned an invalid review thread reply cursor")
+                        comment_cursor = next_comment_cursor
+                    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError, ValueError) as e:
+                        comments_complete = complete = False
+                        errors.append(getattr(e, "stderr", "") or str(e))
+                        break
+                threads.append({
+                    "id": node.get("id"), "path": node.get("path"), "line": node.get("line"),
+                    "original_line": node.get("originalLine"), "start_line": node.get("startLine"),
+                    "original_start_line": node.get("originalStartLine"), "side": node.get("diffSide"),
+                    "start_side": node.get("startDiffSide"), "resolved": bool(node.get("isResolved")),
+                    "outdated": bool(node.get("isOutdated")), "comments": comments,
+                    "comments_complete": comments_complete,
+                })
+            page_info = connection.get("pageInfo") or {}
+            has_thread_page, next_cursor = _page_values(page_info)
+            if not has_thread_page:
+                break
+            if not next_cursor or next_cursor == cursor:
+                complete = False
+                errors.append("GitHub returned an invalid review thread pagination cursor")
+                break
+            cursor = next_cursor
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, FileNotFoundError, json.JSONDecodeError, ValueError) as e:
+        complete = False
+        errors.append(getattr(e, "stderr", "") or str(e))
+    return {"threads": threads, "complete": complete, "error": "; ".join(errors),
             "fetched_at": datetime.now(timezone.utc).isoformat(timespec="seconds")}
 
 
