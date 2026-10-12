@@ -7,6 +7,7 @@ Copilot, and other agents implementing the open skills format.
 | Skill | What it does |
 |---|---|
 | [pr-review](pr-review/SKILL.md) | Rigorous, evidence-based review of a PR, commit range, or local changes via `git` + `gh`, with a self-contained HTML report |
+| [penpot-ux-guardian](penpot-ux-guardian/SKILL.md) | Design-system-first Penpot UX workflow with hard approval gates, layered validation, and comment resolution |
 
 ## Requirements
 
@@ -88,6 +89,13 @@ pr-review/
 ├── schemas/          # review + finding JSON schemas
 ├── scripts/          # open-report.sh, validate-report.sh
 └── references/       # gh command patterns, optional repo config
+penpot-ux-guardian/
+├── SKILL.md          # the only user-invokable skill
+├── references/       # capability survey, design-system, screen-design,
+│                     # validation, comment-resolution, approval, acceptance
+├── templates/        # manifest, proposal, and review-log seeds (copied
+│                     # into the project, never the canonical record)
+└── scripts/          # check-manifest.py deterministic manifest check
 ```
 
 ## Contributing
