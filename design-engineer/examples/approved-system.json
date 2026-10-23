@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "revision": "sample-ds-1",
+  "approval": { "status": "approved", "reference": "SAMPLE-ONLY-NOT-A-REAL-USER-APPROVAL" },
+  "tokens": {
+    "color.primary": "#7aa2f7",
+    "type.label": "14/20/600",
+    "color.background": "#1a1b26"
+  },
+  "components": {
+    "button.primary": {
+      "variants": ["default", "disabled"],
+      "fixedHeight": 40,
+      "minWidth": 96,
+      "styles": { "fill": "color.primary", "type": "type.label" },
+      "permittedOverrides": ["label"]
+    }
+  }
+}

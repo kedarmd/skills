@@ -1,0 +1,15 @@
+{
+  "verdict": "PARTIAL",
+  "errors": [],
+  "warnings": [],
+  "unverifiable": [
+    {
+      "area": "visual",
+      "detail": "Rendered hierarchy, optical balance and accessibility require separate visual inspection."
+    }
+  ],
+  "checks": {
+    "nodeCount": 3,
+    "tolerance": 0.5
+  }
+}

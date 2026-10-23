@@ -7,7 +7,7 @@ Copilot, and other agents implementing the open skills format.
 | Skill | What it does |
 |---|---|
 | [pr-review](pr-review/SKILL.md) | Rigorous, evidence-based review of a PR, commit range, or local changes via `git` + `gh`, with a self-contained HTML report |
-| [penpot-ux-guardian](penpot-ux-guardian/SKILL.md) | Design-system-first Penpot UX workflow with hard approval gates, layered validation, and comment resolution |
+| [design-engineer](design-engineer/SKILL.md) | Tool-agnostic product UI design and design-system governance for new and existing products, with approval gates and layout verification |
 
 ## Requirements
 
@@ -74,6 +74,7 @@ bash install.sh --local --dir ~/.agents/skills
 
 ```bash
 rm -rf ~/.agents/skills/pr-review      # one skill
+rm -rf ~/.agents/skills/design-engineer # one skill
 rm -rf ~/.cache/agent-skills/repo      # cached clone (stops updates)
 ```
 
@@ -89,13 +90,14 @@ pr-review/
 ├── schemas/          # review + finding JSON schemas
 ├── scripts/          # open-report.sh, validate-report.sh
 └── references/       # gh command patterns, optional repo config
-penpot-ux-guardian/
+design-engineer/
 ├── SKILL.md          # the only user-invokable skill
-├── references/       # capability survey, design-system, screen-design,
-│                     # validation, comment-resolution, approval, acceptance
-├── templates/        # manifest, proposal, and review-log seeds (copied
-│                     # into the project, never the canonical record)
-└── scripts/          # check-manifest.py deterministic manifest check
+├── README.md         # package overview and usage notes
+├── protocol/         # system model, change control, tool interface,
+│                     # layout evidence, and inspiration guidance
+├── bin/              # optional dependency-free layout verifier
+├── examples/         # simulated system and scene data
+└── tests/            # verifier tests
 ```
 
 ## Contributing

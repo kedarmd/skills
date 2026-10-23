@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "systemRevision": "sample-ds-1",
+  "canvas": { "width": 390, "height": 844 },
+  "evidence": {
+    "source": "SAMPLE SIMULATION — not an actual adapter read-back",
+    "geometry": true, "styles": true, "componentLinkage": true, "textMeasurement": true
+  },
+  "nodes": [
+    {
+      "id": "root", "parentId": null, "x": 0, "y": 0, "width": 390, "height": 844,
+      "layout": {
+        "type": "stack", "axis": "y", "children": ["headline", "submit"],
+        "padding": { "top": 24, "right": 24, "bottom": 24, "left": 24 },
+        "gap": 16, "crossAlign": "stretch"
+      },
+      "styles": { "fill": "color.background" },
+      "resolvedStyles": { "fill": "#1a1b26" }
+    },
+    {
+      "id": "headline", "parentId": "root", "x": 24, "y": 24, "width": 342, "height": 32,
+      "textMetrics": { "overflow": false }
+    },
+    {
+      "id": "submit", "parentId": "root", "x": 24, "y": 72, "width": 342, "height": 40,
+      "component": { "name": "button.primary", "variant": "default", "detached": false },
+      "styles": { "fill": "color.primary", "type": "type.label" },
+      "resolvedStyles": { "fill": "#7aa2f7", "type": "14/20/600" },
+      "overrides": ["label"],
+      "textMetrics": { "overflow": false }
+    }
+  ],
+  "alignmentGroups": [ { "axis": "left", "nodeIds": ["headline", "submit"] } ]
+}
