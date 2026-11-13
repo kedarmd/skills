@@ -141,6 +141,14 @@ export function verifyLayout(system, scene, tolerance = 0.5) {
       }
       for (let i = 0; i < ordered.length; i++) {
         const child = ordered[i];
+        const contentRight = parent.x + parent.width - padding.right;
+        const contentBottom = parent.y + parent.height - padding.bottom;
+        if (!child.allowOverflow && (child.x < parent.x + padding.left - tolerance
+          || child.y < parent.y + padding.top - tolerance
+          || child.x + child.width > contentRight + tolerance
+          || child.y + child.height > contentBottom + tolerance)) {
+          fail('CONTENT_BOUNDS', child.id, 'Bounds extend into declared stack padding.');
+        }
         if (i > 0) {
           const previous = ordered[i - 1];
           const actualGap = mainPos(child) - (mainPos(previous) + mainSize(previous));

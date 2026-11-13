@@ -1,0 +1,30 @@
+{
+  "id": "adapt-inspiration",
+  "initial_conditions": "A supplied reference has distinctive branding and composition. Product has an approved system and different user needs.",
+  "user_request": "Use this as inspiration for our dashboard.",
+  "workflows": [
+    "inspiration",
+    "new-screen"
+  ],
+  "expected_decisions": [
+    "Extract principles and tie adaptations to product needs.",
+    "Compare alternatives and distinguish uncertain reference interpretations.",
+    "Preserve approved foundations; inspect for unintended literal replication."
+  ],
+  "mandatory_invariants": [
+    "No copied proprietary assets",
+    "No silent canonical changes"
+  ],
+  "observable_success": [
+    "Direction is product-specific and source reasoning traceable"
+  ],
+  "failure_conditions": [
+    "Copies signature screen composition without product rationale",
+    "Replaces approved tokens from reference"
+  ],
+  "evidence_required": [
+    "Reference observations",
+    "Product-specific rationale",
+    "Result render and similarity assessment"
+  ]
+}

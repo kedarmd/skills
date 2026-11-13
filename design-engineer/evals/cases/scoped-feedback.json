@@ -1,0 +1,30 @@
+{
+  "id": "scoped-feedback",
+  "initial_conditions": "Target checkout screen has feedback on summary spacing. Unrelated navigation has pre-existing style debt.",
+  "user_request": "Adjust only the summary spacing.",
+  "workflows": [
+    "refine-screen"
+  ],
+  "expected_decisions": [
+    "Capture target baseline and authorized boundary.",
+    "Repair summary using approved rules and inspect adjacent content.",
+    "Report unrelated debt without editing it."
+  ],
+  "mandatory_invariants": [
+    "Unrelated navigation unchanged",
+    "No unnecessary approval"
+  ],
+  "observable_success": [
+    "Target spacing corrected",
+    "Before/after shows scope preservation"
+  ],
+  "failure_conditions": [
+    "Restyles navigation opportunistically",
+    "Requests canonical approval for local correction"
+  ],
+  "evidence_required": [
+    "Target bounds",
+    "Unrelated asset before/after or mutation diff",
+    "Verification report"
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "migration-preserves-behavior",
+  "initial_conditions": "Approved P3 migrates a button variant on two named screens only. Screens include disabled, loading, keyboard focus and narrow states.",
+  "user_request": "Apply approved P3 without changing existing behavior.",
+  "workflows": [
+    "design-system-change"
+  ],
+  "expected_decisions": [
+    "Confirm P3 scope and inspect consumers before changes.",
+    "Plan compatibility and rollback; preserve identities and behavior.",
+    "Compare states/viewports and leave other consumers unchanged."
+  ],
+  "mandatory_invariants": [
+    "Only approved consumers change",
+    "Behavior preserved",
+    "Canonical verified before dependent work"
+  ],
+  "observable_success": [
+    "Named states and responsive layouts checked",
+    "Outside-scope consumers unchanged"
+  ],
+  "failure_conditions": [
+    "Migrates every screen",
+    "Drops loading or focus behavior",
+    "Claims complete migration from one static snapshot"
+  ],
+  "evidence_required": [
+    "P3 authority",
+    "Before/after state evidence",
+    "Consumer diff",
+    "Rollback plan"
+  ]
+}

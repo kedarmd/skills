@@ -80,3 +80,29 @@ test('detect overlap without explicit exception', () => {
   scene.nodes[2].y = 40;
   assert.ok(rules(verifyLayout(system, scene)).includes('OVERLAP'));
 });
+
+test('stack respects trailing content padding on both axes', () => {
+  for (const axis of ['y', 'x']) {
+    const { system, scene } = base();
+    scene.nodes[0].height = 115;
+    if (axis === 'x') {
+      for (const node of scene.nodes) {
+        [node.x, node.y] = [node.y, node.x];
+        [node.width, node.height] = [node.height, node.width];
+        delete node.component;
+      }
+      scene.nodes[0].layout.axis = 'x';
+      [scene.canvas.width, scene.canvas.height] = [scene.canvas.height, scene.canvas.width];
+      scene.alignmentGroups = [];
+    }
+    assert.ok(rules(verifyLayout(system, scene)).includes('CONTENT_BOUNDS'));
+  }
+});
+
+test('stack permits spare space and explicit overflow exceptions', () => {
+  const { system, scene } = base();
+  assert.ok(!rules(verifyLayout(system, scene)).includes('CONTENT_BOUNDS'));
+  scene.nodes[0].height = 115;
+  scene.nodes[2].allowOverflow = true;
+  assert.ok(!rules(verifyLayout(system, scene)).includes('CONTENT_BOUNDS'));
+});
