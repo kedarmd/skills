@@ -17,13 +17,13 @@ Probe tool capabilities rather than guessing API names. Write down the actual to
 
 ## Adapter output
 
-For a given screen/viewport, provide a normalized `scene.json` matching `layout-evidence.md`. Values must be sourced from a fresh tool read **after** changes are applied, not from code or values the agent intended to write. Include provenance in `evidence.source` and accurate per-capability flags.
+When using the optional verifier, normalize supported read-back for the relevant screen/viewport into `scene.json` matching [layout evidence](layout-evidence.md). Otherwise retain the actual supported tool evidence directly; a JSON export is not required. Values must be sourced from a fresh tool read **after** changes are applied, not from code or values the agent intended to write. Include provenance in `evidence.source` and accurate per-capability flags.
 
 A tool exposing only screenshots can support visual critique but cannot certify geometry, token linkage or component identities. A tool exposing only node trees without renders can support numeric checks but cannot certify the rendered visual result.
 
 ## Adapter mutation requirements
 
-Preserve component-instance linkage; use constraint/auto-layout facilities when possible; preserve stable IDs; never silently detach components; never modify approved canonical definitions without the user's scoped approval. Edits must be re-read and verified. If a write partially fails, report the actual result and stop dependent work.
+Preserve component-instance linkage; use constraint/auto-layout facilities when possible; preserve stable IDs; never silently detach components; never modify approved canonical definitions without the user's scoped approval. Edits must be re-read and verified. If a write partially fails, inspect and report the actual result before retrying; stop dependent work until the state is understood.
 
 Do not claim that a normalized JSON file itself proves the original design is correct: the adapter needs a trustworthy read from a real design document.
 

@@ -1,0 +1,33 @@
+{
+  "id": "approved-screen",
+  "initial_conditions": "An approved library has linked button and field components, spacing tokens, and identifiable approval D1. A settings screen is absent.",
+  "user_request": "Create a settings screen using the existing system.",
+  "workflows": [
+    "new-screen"
+  ],
+  "expected_decisions": [
+    "Inspect the relevant library and D1; reuse equivalents without reapproval.",
+    "Plan hierarchy, token gaps, content and viewports before writes.",
+    "Read back the created screen and inspect its render; request separate screen acceptance."
+  ],
+  "mandatory_invariants": [
+    "No canonical mutations",
+    "No detached copies",
+    "No unnecessary system approval request"
+  ],
+  "observable_success": [
+    "Linked instances and token use match D1",
+    "Fresh read-back follows mutations"
+  ],
+  "failure_conditions": [
+    "Reapproves the unchanged library",
+    "Claims acceptance from validation"
+  ],
+  "evidence_required": [
+    "D1 source",
+    "Asset lookup and instance linkage",
+    "Construction plan",
+    "Mutation/read-back sequence",
+    "Render and check report"
+  ]
+}

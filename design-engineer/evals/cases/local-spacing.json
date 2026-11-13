@@ -1,0 +1,30 @@
+{
+  "id": "local-spacing",
+  "initial_conditions": "An approved form has 16-unit gaps and left alignment. One field is shifted and a gap is 21. Other screens are unchanged.",
+  "user_request": "Fix this form\u2019s spacing and alignment.",
+  "workflows": [
+    "refine-screen"
+  ],
+  "expected_decisions": [
+    "Classify as screen-local compliance repair.",
+    "Correct the governing container relationships without canonical edits.",
+    "Re-read geometry and inspect adjacent controls."
+  ],
+  "mandatory_invariants": [
+    "No system approval request",
+    "Unrelated screens unchanged"
+  ],
+  "observable_success": [
+    "Measured gaps and alignment match contract",
+    "Target and adjacent UI checked"
+  ],
+  "failure_conditions": [
+    "Changes token values to match bad geometry",
+    "Uses unrelated offsets to conceal the cause"
+  ],
+  "evidence_required": [
+    "Before/after bounds",
+    "Canonical token comparison",
+    "Scope diff"
+  ]
+}
