@@ -22,7 +22,7 @@ When given a PR URL, number, or `repo number`, `gh` is the source of truth.
 See `../references/gh-commands.md`.
 
 ```sh
-gh pr view <PR> --json number,title,body,author,baseRefName,headRefName,baseRefOid,headRefOid,state,createdAt,updatedAt,closedAt,mergedAt,reviewDecision,mergeStateStatus,labels,reviews,reviewThreads,comments,files,additions,deletions,url
+gh pr view <PR> --json number,title,body,author,baseRefName,headRefName,baseRefOid,headRefOid,state,createdAt,updatedAt,closedAt,mergedAt,reviewDecision,mergeStateStatus,labels,reviews,comments,files,additions,deletions,url
 gh pr diff <PR>
 ```
 
@@ -48,13 +48,11 @@ git diff <base-SHA> <head-SHA> --stat
 git diff <base-SHA> <head-SHA> --name-status
 ```
 
-Build the report's required `changes[]` data from this exact range. Include
-one item per changed path with status, additions, deletions, and its unified
-patch. For PRs, use the `gh pr diff` output tied to the resolved head SHA;
-after collecting it, re-read the PR head SHA and restart context collection
-if it changed. For commit/local reviews use `git diff <base> <head>`. Preserve
-each file's patch boundaries so the Changes tab can render accurate line
-anchors.
+Run `scripts/collect-context.py` as specified in `report.md` to capture metadata,
+patches, statistics and sources. The collector pins revisions and checks for a
+changed PR head. Reviewers read its context file rather than reproducing this
+data in model output. Use the helper's GraphQL thread reader for review threads;
+they are not a `gh pr view --json` field.
 
 ## 3. Commit mode
 
@@ -109,26 +107,8 @@ Record which instruction files were found and which rules apply.
 
 ## Output
 
-Return a structured context object:
-
-```json
-{
-  "repository": "owner/repo",
-  "mode": "pull_request | commit_range | local",
-  "base": "<sha>",
-  "head": "<sha>",
-  "merge_base": "<sha, if relevant>",
-  "pr": { "number": 123, "title": "...", "author": "...", "...": "..." },
-  "changed_files": ["src/a.ts"],
-  "changes": [{"path":"src/a.ts","status":"modified","additions":2,"deletions":1,"patch":"@@ ..."}],
-  "excluded_files": [{ "file": "dist/b.js", "reason": "generated" }],
-  "commits": [{ "sha": "...", "subject": "..." }],
-  "previous_review": { "head_sha": "...", "findings": [] },
-  "instructions": ["AGENTS.md"],
-  "diff_stat": "..."
-}
-```
-
-Keep the full diff available to downstream passes but do not paste it into
-every sub-agent prompt — pass file lists plus the diff, or a path to a
-saved diff file under `/tmp/pr-review/`.
+Return the collector's context.json path together with applicable project
+instructions and any previous-review evidence. Keep full diffs available in that
+file; pass file paths to agents rather than copying the same diff into each
+prompt. The collector owns its schema; do not hand-construct a second context
+format. Recollect if the reviewed PR head or local snapshot changes.

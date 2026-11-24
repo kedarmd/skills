@@ -3,8 +3,8 @@
 
 # Finding Validation
 
-Receive candidate findings from independent reviewers. Output the accepted
-finding list matching `../schemas/finding.schema.json` (+ `../schemas/review.schema.json`).
+The review agent validates its candidates and returns the findings in
+`../schemas/analysis.schema.json`.
 
 ## 1. Validate
 
@@ -24,8 +24,7 @@ low-impact issues.
 ## 2. Deduplicate
 
 Multiple reviewers may flag the same root cause from different angles.
-Merge into one finding; preserve the best title, combine `evidence` and
-`suggestions`, keep the tightest line range. Cross-reference merged IDs in
+Merge into one finding; preserve the best title, combine evidence and recommendations, keep the tightest line range. Cross-reference merged IDs in
 `evidence` if useful.
 
 ## 3. Severity (exactly one)
@@ -37,9 +36,7 @@ Merge into one finding; preserve the best title, combine `evidence` and
 - `MEDIUM` — meaningful under realistic conditions or likely future defect.
 - `LOW` — minor but actionable.
 
-Do not inflate. Do not use severity for confidence — record `confidence`
-(0–1) separately. Normally discard `confidence < 0.6` unless further
-verification raises it.
+Use severity for impact. Investigate uncertain candidates further or drop them.
 
 ## 4. Source location
 
@@ -52,11 +49,7 @@ whole file. For PR comments also record:
 
 `RIGHT` = new/head side, `LEFT` = removed/base side.
 
-For each source excerpt, set `code_excerpt_start_line` to the absolute line
-represented by its first line. If a finding has multiple locations, prefer
-location-specific `code_excerpt` and `code_excerpt_start_line` values.
-Suggestions should include a concise reviewer comment and, when useful, a
-replacement snippet in `code`.
+Source excerpts are extracted by the builder from the reviewed snapshot.
 
 ## 5. Status (follow-up reviews)
 
@@ -67,9 +60,10 @@ replacement snippet in `code`.
 - `regressed` — fix attempt introduced a new problem
 - `discarded` — dropped as invalid (keep out of report, log internally)
 
-## 6. Finding structure
+## 6. Handoff
 
-Must validate against `../schemas/finding.schema.json`. Required: `id`
-(`F-001`…), `severity`, `status`, `title`, `summary` (one sentence),
-`locations[]` (≥1), `reason`, `impact`, `evidence`, `confidence`,
-`suggestions[]` (may be empty, each with `id`, `title`, `comment`, `code`).
+Return only the analysis contract: judgment and source coordinates, with an
+optional recommendation. Scripts assign IDs, extract source excerpts, attach
+SHAs, and derive counts. Run the prepare command before sending accepted
+findings to the comment agent. That agent reads `comments.md` and produces
+only the comments contract; it cannot change accepted evidence or severity.

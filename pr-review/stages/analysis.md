@@ -7,14 +7,17 @@ Review only the supplied review range and its relevant surrounding code.
 Objective: real defects, regressions, security issues, important omissions.
 Optimize for correctness, not finding count.
 
-Each pass receives: repository root, review range (base/head SHAs), PR
-context, project instructions, changed files, and the diff. Passes MUST NOT
-modify repository files. Each pass returns structured findings matching
-`../schemas/finding.schema.json`.
+One review agent receives repository root, exact range, collected context,
+project instructions, and the diff. It investigates the applicable passes below,
+validates candidates using `findings.md`, and returns `analysis.schema.json` data.
+It does not modify reviewed code or generate presentation assets.
 
-If the host supports isolated sub-agents, delegate passes in parallel.
-Otherwise run the same passes sequentially. Either way, keep passes
-independent — do not let one pass's draft findings bias another.
+Compare the PR title/body (or explicit user intent for local/range reviews)
+with actual changes. Return overview.summary and overview.intent containing
+stated_intent, implemented_changes, verdict, and explanation. Use
+`matches`, `partially_matches`, `does_not_match`, or `insufficient_context`.
+Cite file/line evidence in the explanation for discrepancies; absent intent is
+insufficient context, not permission to infer a specification.
 
 ## Passes (skip irrelevant ones, state why)
 
@@ -81,5 +84,4 @@ Every finding must answer:
 
 If any answer is missing, do not report — keep investigating or drop it.
 
-Include a `confidence` (0–1) per finding. Below ~0.6, either verify further
-or drop. The validation stage (`findings.md`) rechecks everything.
+Resolve uncertainty through inspection before accepting a finding.
