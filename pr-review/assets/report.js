@@ -48,7 +48,7 @@ function detailViewHTML(){var index=sorted.findIndex(function(f){return f.id===s
 function updateRegion(node,markup){if(node._markup!==markup){node.innerHTML=markup;node._markup=markup}}
 var scrollStates={},renderedKey='',finishOpen=false,syntaxCache=new Map();
 function viewKey(){return tab==='review'?tab+':'+workTab+':'+(workTab==='changes'?selectedChange:selected)+':'+locationIndex:tab}
-function render(){
+function placeFinishPanel(){var panel=$('#finish-review-panel'),anchor=$('#finish-review-entry');if(!panel||!anchor||panel.hidden)return;var r=anchor.getBoundingClientRect(),gap=8,width=Math.min(620,window.innerWidth-32),left=Math.max(16,Math.min(r.right-width,window.innerWidth-width-16)),top=Math.min(r.bottom+gap,Math.max(16,window.innerHeight-Math.min(panel.scrollHeight,window.innerHeight-32)-16));panel.style.left=left+'px';panel.style.right='auto';panel.style.top=top+'px';panel.style.bottom='auto';panel.style.maxHeight='calc(100vh - '+(top+16)+'px)'}window.addEventListener('resize',placeFinishPanel);window.addEventListener('scroll',placeFinishPanel,true);function render(){
 var v=$('#view'),key=viewKey(),active=document.activeElement,focusKey=active&&active.outerHTML,positions={};
 ['.workspace-items','.workspace-detail','.thread-list'].forEach(function(sel){var el=$(sel);if(el)positions[sel]=[el.scrollLeft,el.scrollTop]});
 if(renderedKey)scrollStates[renderedKey]={positions:positions,y:window.scrollY};
@@ -58,7 +58,7 @@ if(tab==='overview')updateRegion($('#overview-region'),overview());else{var part
 var finish=$('#finish-review-entry');if(canPR&&!finish){finish=document.createElement('button');finish.id='finish-review-entry';finish.className='btn primary';$('.tabs').appendChild(finish)}
 if(finish){finish.textContent='Finish review · '+Object.keys(comments).length;finish.onclick=function(){finishOpen=!finishOpen;render()};finish.setAttribute('aria-expanded',String(finishOpen))}
 var panel=$('#finish-review-panel');if(canPR&&!panel){panel=document.createElement('div');panel.id='finish-review-panel';v.parentNode.appendChild(panel)}
-if(panel){panel.hidden=!finishOpen;var markup=finishOpen?actionsHTML():'';updateRegion(panel,markup)}
+if(panel){panel.hidden=!finishOpen;var markup=finishOpen?actionsHTML():'';updateRegion(panel,markup);placeFinishPanel()}
 wire();var saved=scrollStates[key];if(saved){Object.keys(saved.positions).forEach(function(sel){var el=$(sel);if(el){el.scrollLeft=saved.positions[sel][0];el.scrollTop=saved.positions[sel][1]}});window.scrollTo(0,saved.y)}else if(key!==renderedKey){var detail=$('.workspace-detail');if(detail)detail.scrollTop=0}
 if(key===renderedKey&&focusKey){Array.prototype.some.call(document.querySelectorAll('button,input,textarea,select'),function(el){if(el.outerHTML===focusKey){el.focus({preventScroll:true});return true}return false})}
 renderedKey=key;
