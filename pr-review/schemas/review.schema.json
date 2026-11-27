@@ -1,26 +1,80 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "pr-review-review-schema-1.1",
+  "$id": "pr-review-review-schema-2.0",
   "title": "pr-review report payload",
   "type": "object",
-  "required": ["schema_version", "review", "summary", "flow", "findings", "overview", "changes", "pr_context"],
+  "required": [
+    "schema_version",
+    "review",
+    "summary",
+    "findings",
+    "overview",
+    "changes",
+    "pr_context"
+  ],
   "properties": {
-    "schema_version": { "const": "1.1" },
+    "schema_version": {
+      "const": "2.0"
+    },
     "pr_context": {
       "description": "Last successfully fetched pull request lifecycle and aggregate review decision; null until a complete fetch succeeds.",
       "oneOf": [
-        { "type": "null" },
+        {
+          "type": "null"
+        },
         {
           "type": "object",
-          "required": ["lifecycle", "created_at", "updated_at", "closed_at", "merged_at", "review_decision", "fetched_at"],
+          "required": [
+            "lifecycle",
+            "created_at",
+            "updated_at",
+            "closed_at",
+            "merged_at",
+            "review_decision",
+            "fetched_at"
+          ],
           "properties": {
-            "lifecycle": { "enum": ["open", "closed", "merged"] },
-            "created_at": { "type": "string", "format": "date-time" },
-            "updated_at": { "type": "string", "format": "date-time" },
-            "closed_at": { "type": ["string", "null"], "format": "date-time" },
-            "merged_at": { "type": ["string", "null"], "format": "date-time" },
-            "review_decision": { "enum": ["approved", "changes_requested", "review_required", "no_decision"] },
-            "fetched_at": { "type": "string", "format": "date-time" }
+            "lifecycle": {
+              "enum": [
+                "open",
+                "closed",
+                "merged"
+              ]
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "updated_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "closed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "merged_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "review_decision": {
+              "enum": [
+                "approved",
+                "changes_requested",
+                "review_required",
+                "no_decision"
+              ]
+            },
+            "fetched_at": {
+              "type": "string",
+              "format": "date-time"
+            }
           },
           "additionalProperties": false
         }
@@ -28,108 +82,220 @@
     },
     "review": {
       "type": "object",
-      "required": ["mode", "repository", "base_sha", "head_sha"],
+      "required": [
+        "mode",
+        "repository",
+        "base_sha",
+        "head_sha"
+      ],
       "properties": {
-        "mode": { "enum": ["pull_request", "commit_range", "local"] },
-        "repository": { "type": "string", "minLength": 1 },
-        "pull_request": { "type": "integer" },
-        "pr_url": { "type": "string" },
-        "pr_title": { "type": "string" },
-        "pr_author": { "type": "string" },
-        "base_ref": { "type": "string" },
-        "head_ref": { "type": "string" },
-        "base_sha": { "type": "string", "minLength": 7 },
-        "head_sha": { "type": "string", "minLength": 7 },
-        "generated_at": { "type": "string" }
-      }
+        "mode": {
+          "enum": [
+            "pull_request",
+            "commit_range",
+            "local"
+          ]
+        },
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pull_request": {
+          "type": "integer"
+        },
+        "pr_url": {
+          "type": "string"
+        },
+        "pr_title": {
+          "type": "string"
+        },
+        "pr_author": {
+          "type": "string"
+        },
+        "base_ref": {
+          "type": "string"
+        },
+        "head_ref": {
+          "type": "string"
+        },
+        "base_sha": {
+          "type": "string",
+          "minLength": 7
+        },
+        "head_sha": {
+          "type": "string",
+          "minLength": 7
+        },
+        "generated_at": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
     },
     "summary": {
       "type": "object",
-      "required": ["critical", "high", "medium", "low"],
+      "required": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ],
       "properties": {
-        "critical": { "type": "integer", "minimum": 0 },
-        "high": { "type": "integer", "minimum": 0 },
-        "medium": { "type": "integer", "minimum": 0 },
-        "low": { "type": "integer", "minimum": 0 }
-      }
+        "critical": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "high": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "medium": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "low": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
     },
     "overview": {
       "type": "object",
       "description": "Opening review summary and optional overview details.",
-      "required": ["summary"],
+      "required": [
+        "summary",
+        "intent"
+      ],
       "properties": {
-        "summary": { "type": "string" },
+        "summary": {
+          "type": "string"
+        },
         "stats": {
           "type": "object",
           "properties": {
-            "files": { "type": "integer", "minimum": 0 },
-            "additions": { "type": "integer", "minimum": 0 },
-            "deletions": { "type": "integer", "minimum": 0 },
-            "commits": { "type": "integer", "minimum": 0 }
-          }
+            "files": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "additions": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "deletions": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "commits": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
         },
         "key_files": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["file"],
+            "required": [
+              "file"
+            ],
             "properties": {
-              "file": { "type": "string" },
-              "why": { "type": "string" }
-            }
-          }
-        }
-      }
-    },
-    "flow": {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["id", "label"],
-        "properties": {
-          "id": { "type": "string" },
-          "label": { "type": "string" },
-          "transition": { "type": "string" },
-          "locations": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": ["file", "start_line", "end_line"],
-              "properties": {
-                "file": { "type": "string" },
-                "start_line": { "type": "integer", "minimum": 1 },
-                "end_line": { "type": "integer", "minimum": 1 },
-                "code_excerpt": { "type": "string" },
-                "code_excerpt_start_line": { "type": "integer", "minimum": 1 }
+              "file": {
+                "type": "string"
+              },
+              "why": {
+                "type": "string"
               }
+            },
+            "additionalProperties": false
+          }
+        },
+        "intent": {
+          "type": "object",
+          "properties": {
+            "stated_intent": {
+              "type": "string",
+              "minLength": 1
+            },
+            "implemented_changes": {
+              "type": "string",
+              "minLength": 1
+            },
+            "verdict": {
+              "enum": [
+                "matches",
+                "partially_matches",
+                "does_not_match",
+                "insufficient_context"
+              ]
+            },
+            "explanation": {
+              "type": "string",
+              "minLength": 1
             }
           },
-          "finding_ids": { "type": "array", "items": { "type": "string" } },
-          "code_excerpt": { "type": "string" },
-          "code_excerpt_start_line": { "type": "integer", "minimum": 1 }
+          "required": [
+            "stated_intent",
+            "implemented_changes",
+            "verdict",
+            "explanation"
+          ],
+          "additionalProperties": false
         }
-      }
+      },
+      "additionalProperties": false
     },
     "changes": {
       "type": "array",
       "description": "Changed file list with unified diffs from the reviewed range.",
       "items": {
         "type": "object",
-        "required": ["path", "status", "additions", "deletions", "patch"],
+        "required": [
+          "path",
+          "status",
+          "additions",
+          "deletions",
+          "patch"
+        ],
         "properties": {
-          "path": { "type": "string", "minLength": 1 },
-          "status": { "type": "string" },
-          "additions": { "type": "integer", "minimum": 0 },
-          "deletions": { "type": "integer", "minimum": 0 },
-          "patch": { "type": "string" },
-          "binary": { "type": "boolean" },
-          "finding_ids": { "type": "array", "items": { "type": "string" } }
-        }
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string"
+          },
+          "additions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "deletions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "patch": {
+            "type": "string"
+          },
+          "binary": {
+            "type": "boolean"
+          },
+          "finding_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
       }
     },
     "findings": {
       "type": "array",
-      "items": { "$ref": "finding.schema.json" }
+      "items": {
+        "$ref": "finding.schema.json"
+      }
     }
-  }
+  },
+  "additionalProperties": false
 }

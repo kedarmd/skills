@@ -41,15 +41,20 @@ directly. Only this skill loads them, by path, as needed:
 
 They are portable instruction files, not vendor-specific agents.
 
-If the host supports isolated sub-agents, delegate independent review passes
-to them. If it does not, execute the same passes sequentially.
+Use one review agent for investigation and validation, followed by one comment
+agent for presentation-ready wording. Pass accepted structured findings between
+them, not the full conversation. If isolated agents are unavailable, execute
+these two roles sequentially with the same contracts. Scripts handle collection,
+validation and rendering. See `stages/comments.md` for the second role.
 
 Reference material:
 
+- `schemas/analysis.schema.json` — review agent output
+- `schemas/comments.schema.json` — comment agent output
 - `schemas/review.schema.json` — review JSON schema (embedded in report)
 - `schemas/finding.schema.json` — finding object schema
-- `templates/report.html` — self-contained report template
-- `assets/report.css`, `assets/report.js` — editable report sources
+- `templates/report.html` — fixed report shell with build placeholders
+- `assets/report.css`, `assets/report.js` — canonical presentation sources
 - `scripts/open-report.sh` — serve a report locally and open it in the default browser
 - `scripts/validate-report.sh` — validate generated report
 - `references/gh-commands.md` — allowed `gh` patterns
@@ -176,10 +181,9 @@ Recommended passes (skip irrelevant ones):
 9. Performance
 10. Maintainability
 
-Each reviewer (sub-agent or sequential pass) receives repository root,
-review range, PR context, project instructions, changed files, diff, and
-a task-specific focus, and MUST return structured findings matching
-`schemas/finding.schema.json`. Reviewers MUST NOT modify repository files.
+The review agent receives repository root, exact range, collected PR context,
+project instructions, changed files and diff. It returns only
+`schemas/analysis.schema.json` data and does not modify reviewed files.
 
 Verify every candidate finding per `stages/findings.md`:
 
@@ -217,14 +221,13 @@ Do not use severity to express confidence.
 Every accepted finding MUST contain severity, concise title, explanation,
 file path, exact line or line range, why the behavior is incorrect/risky,
 concrete impact, evidence, and optional suggested fixes. See
-`schemas/finding.schema.json`.
+`schemas/analysis.schema.json`.
 
 Point to the smallest useful source range. Prefer `src/service.ts:42-47`
 over a whole file.
 
-For GitHub diff comments, also record `side` (`RIGHT` for new code,
-`LEFT` for removed code) and `commit_sha` — PR comments attach to a
-specific diff version, not just a file/line.
+Record `side` (`RIGHT` for new code, `LEFT` for removed code). The builder
+attaches the snapshot SHA; comments target that reviewed diff version.
 
 Suggestions MUST NOT silently modify the repository. A suggestion may
 contain explanation, replacement code, patch/diff, and implementation
@@ -282,18 +285,10 @@ offline file, but live PR context refresh and GitHub actions work only through
 the local helper; the embedded context remains visible as the last fetched
 snapshot when the file is opened directly.
 
-Report contents: opening summary, clickable SVG change sequence, a Changes
-tab with per-file patches, related findings, dedicated detail views, and
-line-comment composers, syntax-colored source with highlighted lines,
-suggested comment/code fixes, theme toggle, metadata — plus review actions
-(comment / request-changes / approve / merge / close) only in
-`pull_request` mode; omit them for commit-range and local reviews, where
-there is no PR to act on. Change-flow nodes must come from actual evidence and
-link to findings/code — never invent architecture. Omit the flow if the
-change is too small to justify one.
-
-Design goal: a fast technical developer tool, not a marketing dashboard.
-Compact by default; expand for explanation, impact, evidence, suggestions.
+The fixed report provides an intent-versus-implementation overview, a Changes
+workspace with source-linked findings and inline comments, PR discussion,
+and one shared Finish review panel. All display behavior lives in the checked-in
+assets. Agents supply structured judgments and comments only.
 
 ---
 
