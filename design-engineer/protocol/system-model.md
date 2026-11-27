@@ -6,7 +6,7 @@ The design system can be **newly created, pre-existing and approved, or incomple
 
 - **New**: no system or accepted visual baseline yet. Research and propose one, then obtain approval before implementation.
 - **Established and approved**: locate design-library assets, tokens, docs, and decision evidence. Verify they agree. Preserve existing approved definitions; no blanket new approval required merely to create a normalized registry.
-- **Partial or undocumented**: inspect actual UI and reusable assets; label each candidate rule as `verified`, `inferred`, or `conflicting`. Request focused baseline confirmation for uncertain elements rather than pretending the extracted model is authoritative.
+- **Partial or undocumented**: inspect actual UI and reusable assets; label each candidate rule as `approved`, `verified convention`, `inferred`, `conflicting`, or `missing`. Request focused baseline confirmation for uncertain elements rather than pretending the extracted model is authoritative.
 - **Drifted**: a screen instance differs from an approved definition. Treat screen-local repair separately from changes to the definition itself.
 
 When evidence for prior approval is missing, a user's explicit confirmation of the extracted baseline can establish a new baseline decision. Don't manufacture a prior approval or treat popular repetition across screens as proof of approval.
@@ -26,13 +26,17 @@ Use an unambiguous project-owned format compatible with the real design tool; JS
 
 1. Inventory the real token/component library, component instances in relevant screens, existing viewport patterns and prior decisions.
 2. Establish which records are canonical and which are overrides, detached instances, deprecated assets or provisional concepts.
-3. Note verified/inferred/conflicting details, references and source freshness. Don't extrapolate unknown breakpoints or variants.
+3. Note each applicable rule’s authority classification, references and source freshness. Don't extrapolate unknown breakpoints or variants.
 4. Create a compatibility map between approved assets and the verifier contract; preserve identifiers when practical, and record aliases where necessary.
 5. Surface existing inconsistencies as audit findings. Changes to **definitions** require proposal approval; repairs that restore approved rules do not.
 6. For a newly requested feature, audit its **direct dependencies** first. Do not turn a small task into an unrequested complete redesign.
 
 ## Machine-readable example
 
-The neutral verifier currently expects `version`, `revision`, `approval.status`, `approval.reference`, `tokens`, and `components` in `system.json`. An approved reference can identify an established, verifiable project approval record **or** a new user baseline decision. It must be real, not an invented string. Component contracts may contain `variants`, `fixedHeight`, `minWidth`, `styles`, and `permittedOverrides`; layout constraints are declared in the corresponding measured scene. See `layout-evidence.md`.
+The neutral verifier currently expects `version`, `revision`, `approval.status`, `approval.reference`, `tokens`, and `components` in `system.json`. An approved reference can identify an established, verifiable project approval record **or** a new user baseline decision. It must be real, not an invented string. Component contracts may contain `variants`, `fixedHeight`, `minWidth`, `styles`, and `permittedOverrides`; layout constraints are declared in the corresponding measured scene. See [layout evidence](layout-evidence.md).
 
 The sample `examples/approved-system.json` is illustrative only and its marked sample approval is not usable for a real project. A passing sample check is not evidence of approval or live read-back.
+
+## Task-sized contract
+
+Record only applicable constraints and unresolved dependencies; a small screen correction does not require a complete system inventory or JSON registry. Use existing project records and preserve the original canonical source. A verified convention is directly observed but lacks approval evidence; an inferred pattern is an interpretation; a conflict has competing definitions; missing means the task requires a rule or asset that was not found. None of these statuses silently becomes approved. Resolve only uncertainty blocking the requested work through [change control](change-control.md).

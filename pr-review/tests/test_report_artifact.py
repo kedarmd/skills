@@ -19,8 +19,14 @@ DRIVER = shutil.which("chromedriver")
 class ReportArtifactTests(unittest.TestCase):
     def test_discussion_order_partial_retry_and_show_all(self):
         template = (ROOT / "pr-review/templates/report.html").read_text()
-        marker = '{"schema_version":"1.1","review":{"mode":"pull_request","repository":"owner/repo","pull_request":0,"base_sha":"base000","head_sha":"head000"},"summary":{"critical":0,"high":0,"medium":0,"low":0},"overview":{"summary":"Review summary goes here."},"flow":[],"changes":[],"findings":[],"pr_context":null}'
-        payload = {"schema_version":"1.1", "review":{"mode":"pull_request","repository":"acme/app","pull_request":3,"base_sha":"base000","head_sha":"head000"}, "summary":{"critical":0,"high":0,"medium":0,"low":1}, "overview":{"summary":"Fixture"},"flow":[],"changes":[{"path":"src/a.py","status":"modified","additions":1,"deletions":1,"patch":"@@ -7 +7 @@\n-old\n+new"}],"findings":[{"id":"F-001","severity":"LOW","title":"Related finding","summary":"Fixture finding","locations":[{"file":"src/a.py","start_line":7,"end_line":7}]},{"id":"F-002","severity":"LOW","title":"Interior overlap","summary":"Interior fixture finding","locations":[{"file":"src/a.py","start_line":6,"end_line":6}]}],"pr_context":None}
+        template = template.replace('{{REPORT_CSS}}', (ROOT / 'pr-review/assets/report.css').read_text()).replace('{{REPORT_JS}}', (ROOT / 'pr-review/assets/report.js').read_text())
+        marker = '{{REVIEW_DATA}}'
+        payload = {"schema_version":"2.0", "review":{"mode":"pull_request","repository":"acme/app","pull_request":3,"base_sha":"base000","head_sha":"head000"}, "summary":{"critical":0,"high":0,"medium":0,"low":1}, "overview":{"summary":"Fixture"},"changes":[{"path":"src/a.py","status":"modified","additions":1,"deletions":1,"patch":"@@ -7 +7 @@\n-old\n+new"}],"findings":[{"id":"F-001","severity":"LOW","title":"Related finding","summary":"Fixture finding","locations":[{"file":"src/a.py","start_line":7,"end_line":7}]},{"id":"F-002","severity":"LOW","title":"Interior overlap","summary":"Interior fixture finding","locations":[{"file":"src/a.py","start_line":6,"end_line":6}]}],"pr_context":None}
+        payload['overview']['intent'] = {'stated_intent':'Fix the changed behavior', 'implemented_changes':'Updates the affected source', 'verdict':'matches', 'explanation':'The implementation covers the stated change.'}
+        payload['changes'][0]['patch'] += '\n' + '\n'.join(' context line ' + str(i) for i in range(120))
+        payload['changes'][0]['patch'] += '\n+<img src=x onerror=alert(1)>&'
+        payload['findings'][0]['suggestions'] = [{'id':'S-001', 'title':'Fix', 'comment':'Suggested comment'}]
+        payload['findings'][1]['locations'][0]['commentable'] = False
         page = template.replace(marker, json.dumps(payload))
         reviews = [
             {"user":{"login":"a"},"submitted_at":"2026-09-28T12:00:00Z","state":"APPROVED","body":"old decision"},
@@ -109,6 +115,8 @@ class ReportArtifactTests(unittest.TestCase):
             def evaluate(script):
                 return request(f"/session/{session}/execute/sync", {"script":script,"args":[]}, "POST")["value"]
 
+            self.assertIn('implementation covers', evaluate("return document.querySelector('.intent-check').textContent"))
+            self.assertEqual(evaluate("return document.querySelectorAll('.flow-svg').length"), 0)
             self.assertTrue(evaluate("return document.querySelector('#tab-overview').classList.contains('active')"))
             self.assertEqual(evaluate("return document.querySelector('#tab-changes').textContent.trim()"), "Review")
             evaluate("document.querySelector('#tab-changes').click(); return true")
@@ -125,9 +133,25 @@ class ReportArtifactTests(unittest.TestCase):
             resize(390, 844)
             self.assertEqual(evaluate("return getComputedStyle(document.querySelector('.review-layout')).gridTemplateColumns.split(' ').length"), 1)
             resize(1200, 900)
+            self.assertEqual(evaluate("return document.querySelectorAll('.diff-body img').length"), 0)
+            self.assertIn('<img src=x onerror=alert(1)>&', evaluate("return document.querySelector('.diff-body').textContent"))
             self.assertTrue(evaluate("return !!document.querySelector('[data-work-tab=changes]')"))
+            self.assertGreater(evaluate("var p=document.querySelector('.workspace-detail');p.scrollTop=400;return p.scrollTop"), 0)
+            saved_scroll = evaluate("return document.querySelector('.workspace-detail').scrollTop")
+            evaluate("document.querySelector('[data-work-tab=findings]').click();document.querySelector('[data-work-tab=changes]').click();return true")
+            self.assertEqual(evaluate("return document.querySelector('.workspace-detail').scrollTop"), saved_scroll)
+            evaluate("document.querySelector('#tab-overview').click();document.querySelector('#tab-changes').click();return true")
+            self.assertEqual(evaluate("return document.querySelector('.workspace-detail').scrollTop"), saved_scroll)
+
             evaluate("document.querySelector('[data-work-tab=findings]').click(); return true")
             self.assertIn("Related finding", evaluate("return document.querySelector('.workspace-detail').textContent"))
+            self.assertEqual(evaluate("return document.querySelector('[data-finding-comment]').value"), 'Suggested comment')
+            evaluate("var t=document.querySelector('[data-finding-comment]');t.value='';t.dispatchEvent(new Event('input'));document.querySelector('[data-finding-pick=F-002]').click();return true")
+            self.assertEqual(evaluate("return document.querySelectorAll('[data-finding-comment]').length"), 0)
+            self.assertIn('outside the reviewed diff', evaluate("return document.querySelector('.workspace-detail').textContent"))
+            evaluate("document.querySelector('[data-finding-pick=F-001]').click();return true")
+            self.assertEqual(evaluate("return document.querySelector('[data-finding-comment]').value"), '')
+
             self.assertEqual(evaluate("return [...document.querySelectorAll('.discussion-group')].map(x=>x.textContent).join('|')"), "changes requested|commented|approved")
             self.assertEqual(evaluate("return [...document.querySelectorAll('.discussion-card')[0].querySelectorAll('.discussion-item p')].map(x=>x.textContent).join('|')"), "new decision|middle decision|old decision")
             self.assertEqual(evaluate("return document.querySelector('.discussion-card .discussion-item strong').textContent"), "c")

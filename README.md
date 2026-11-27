@@ -93,11 +93,12 @@ pr-review/
 design-engineer/
 ├── SKILL.md          # the only user-invokable skill
 ├── README.md         # package overview and usage notes
-├── protocol/         # system model, change control, tool interface,
-│                     # layout evidence, and inspiration guidance
+├── workflows/        # task-specific routes under one lifecycle
+├── protocol/         # contracts, governance, construction, tool/evidence rules
+├── evals/            # behavioral cases, rubric, audit and actual results
 ├── bin/              # optional dependency-free layout verifier
 ├── examples/         # simulated system and scene data
-└── tests/            # verifier tests
+└── tests/            # verifier and package validation tests
 ```
 
 ## Contributing

@@ -1,0 +1,202 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "review",
+    "changes",
+    "sources"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "2.0"
+    },
+    "review": {
+      "type": "object",
+      "required": [
+        "mode",
+        "repository",
+        "base_sha",
+        "head_sha"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "pull_request",
+            "commit_range",
+            "local"
+          ]
+        },
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pull_request": {
+          "type": "integer"
+        },
+        "pr_url": {
+          "type": "string"
+        },
+        "pr_title": {
+          "type": "string"
+        },
+        "pr_author": {
+          "type": "string"
+        },
+        "base_ref": {
+          "type": "string"
+        },
+        "head_ref": {
+          "type": "string"
+        },
+        "base_sha": {
+          "type": "string",
+          "minLength": 7
+        },
+        "head_sha": {
+          "type": "string",
+          "minLength": 7
+        },
+        "generated_at": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "changes": {
+      "type": "array",
+      "description": "Changed file list with unified diffs from the reviewed range.",
+      "items": {
+        "type": "object",
+        "required": [
+          "path",
+          "status",
+          "additions",
+          "deletions",
+          "patch"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string"
+          },
+          "additions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "deletions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "patch": {
+            "type": "string"
+          },
+          "binary": {
+            "type": "boolean"
+          },
+          "finding_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "LEFT",
+          "RIGHT"
+        ],
+        "properties": {
+          "LEFT": {
+            "type": "string"
+          },
+          "RIGHT": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "commits": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "pr_context": {
+      "description": "Last successfully fetched pull request lifecycle and aggregate review decision; null until a complete fetch succeeds.",
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "lifecycle",
+            "created_at",
+            "updated_at",
+            "closed_at",
+            "merged_at",
+            "review_decision",
+            "fetched_at"
+          ],
+          "properties": {
+            "lifecycle": {
+              "enum": [
+                "open",
+                "closed",
+                "merged"
+              ]
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "updated_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "closed_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "merged_at": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "review_decision": {
+              "enum": [
+                "approved",
+                "changes_requested",
+                "review_required",
+                "no_decision"
+              ]
+            },
+            "fetched_at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "pr_description": {
+      "type": "string"
+    }
+  }
+}

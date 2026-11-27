@@ -25,8 +25,10 @@ SPEC.loader.exec_module(ACTIONS)
 class ReviewWorkspaceActionTests(unittest.TestCase):
     def test_staged_comment_is_sent_after_confirmation_and_pr_controls_are_mode_gated(self):
         template = (ROOT / "pr-review/templates/report.html").read_text()
-        marker = '{"schema_version":"1.1","review":{"mode":"pull_request","repository":"owner/repo","pull_request":0,"base_sha":"base000","head_sha":"head000"},"summary":{"critical":0,"high":0,"medium":0,"low":0},"overview":{"summary":"Review summary goes here."},"flow":[],"changes":[],"findings":[],"pr_context":null}'
-        payload = {"schema_version":"1.1", "review":{"mode":"pull_request","repository":"acme/app","pull_request":3,"base_sha":"base000","head_sha":"abcdef1234567890"}, "summary":{"critical":0,"high":0,"medium":0,"low":0}, "overview":{"summary":"Fixture summary","stats":{"files":1}}, "flow":[], "changes":[{"path":"src/app.py","status":"modified","additions":1,"deletions":0,"patch":"@@ -7 +7 @@\n+new"}], "findings":[], "pr_context":None}
+        template = template.replace('{{REPORT_CSS}}', (ROOT / 'pr-review/assets/report.css').read_text()).replace('{{REPORT_JS}}', (ROOT / 'pr-review/assets/report.js').read_text())
+        marker = '{{REVIEW_DATA}}'
+        payload = {"schema_version":"2.0", "review":{"mode":"pull_request","repository":"acme/app","pull_request":3,"base_sha":"base000","head_sha":"abcdef1234567890"}, "summary":{"critical":0,"high":0,"medium":0,"low":0}, "overview":{"summary":"Fixture summary","stats":{"files":1}},  "changes":[{"path":"src/app.py","status":"modified","additions":1,"deletions":0,"patch":"@@ -7 +7 @@\n+new"}], "findings":[], "pr_context":None}
+        payload['overview']['intent'] = {'stated_intent':'Fix the changed behavior', 'implemented_changes':'Updates the affected source', 'verdict':'matches', 'explanation':'The implementation covers the stated change.'}
         temporary = tempfile.TemporaryDirectory()
         test_dir = Path(temporary.name)
         original_report = test_dir / "pull-request.html"
@@ -103,6 +105,9 @@ exit 2
                 return request(f"/session/{session}/execute/sync", {"script":script,"args":[]}, "POST")["value"]
 
             evaluate("document.querySelector('#tab-changes').click();return true")
+            self.assertEqual(evaluate("return document.querySelectorAll('#finish-review-entry').length"), 1)
+            evaluate("document.querySelector('#finish-review-entry').click();return true")
+            self.assertEqual(evaluate("return document.querySelectorAll('#finish-review-panel .finish-review').length"), 1)
             self.assertEqual(evaluate("return [...document.querySelectorAll('[data-action]')].map(x=>x.dataset.action).join(',')"), "COMMENT,REQUEST_CHANGES,APPROVE,MERGE,CLOSE")
             evaluate("document.querySelector('[data-action=MERGE]').click();return true")
             for _ in range(60):

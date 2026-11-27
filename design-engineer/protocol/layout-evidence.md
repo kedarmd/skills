@@ -77,4 +77,23 @@ The optional verifier consumes two JSON inputs:
 
 Use the same coordinate space for all nodes, preferably viewport-space. Define nested offsets explicitly if your tool does not export absolute coordinates. `layout.children` is required when a parent claims a stack; `alignmentGroups` may specify `{ "axis": "left|right|top|bottom|center-x|center-y", "nodeIds": [...] }`. Decorative overlap can use `allowOverlap: true` on a node. Overflow exceptions must be deliberate and justified.
 
-Run `node bin/verify-layout.mjs system.json scene.json`; exit code 0 means the **available machine-checkable checks** passed, not that the screen looks good or was approved. Missing checks remain `UNVERIFIABLE`. Do not manually invent a passing scene snapshot.
+Run `node bin/verify-layout.mjs system.json scene.json`; exit code 0 means no errors were reported by the available machine checks, not that the screen looks good or was approved. Missing checks remain `UNVERIFIABLE`. Do not manually invent a passing scene snapshot.
+
+## Coverage before verdict
+
+Create the expected check list from the task contract and construction plan before assessing the result. For each mandatory property, record expected value/relationship, actual evidence source and viewport/state, result (PASS, FAIL, or UNVERIFIABLE), and any scoped exception. Numeric checks and rendered inspection are separate evidence classes. Check relevant typography, token references, instance identities/linkage, interaction states and responsive behavior as well as bounds. Preserve before-state evidence to distinguish introduced regressions from pre-existing debt.
+
+The version-1 verifier is deliberately limited:
+
+- It checks declared nodes, style properties, component metadata, stack constraints, alignment groups, and reported text overflow. It cannot detect every omitted node, component identity or text metric. Compare expected assets/properties with actual read-back; missing mandatory metadata is UNVERIFIABLE even when a capability flag is true.
+- Stack checks support fixed-gap sequential flow, not every native layout primitive (such as distributed spacing, grid, transforms, or intentional layered compositions). Inspect those relationships directly; do not misrepresent them as a stack to obtain a clean result.
+- Geometry values in scene layout declarations are not proof they match approved spacing tokens. Compare them independently with the contract and the planned constraints. An export's own declarations cannot define correctness after the fact.
+- Approval references and provenance strings are not authenticated. Verify their actual sources. Capability flags alone do not prove freshness or completeness.
+- The checker always leaves visual review unresolved and therefore returns PARTIAL for an otherwise valid scene. Exit codes are 0 for no reported errors (including PARTIAL), 1 for reported violations, and 2 for input/usage errors. Inspect the JSON, not only the exit code.
+- Typography rendering, accessibility, interaction behavior, responsive transitions, and optical quality require additional supported evidence. A single viewport snapshot cannot certify them.
+
+## Recovery and final status
+
+After a failure, identify the responsible relationship, correct only its authorized scope, and obtain fresh relevant read-back plus a regression check of affected surroundings. Apply the correction limit in the [entry point](../SKILL.md). Partial writes require inspection before another write. A critical canonical operation that cannot be verified blocks dependent implementation under [change control](change-control.md).
+
+Present supported check results separately from remaining FAIL and UNVERIFIABLE items. If render access is absent, visual QA remains UNVERIFIABLE; if geometry is absent, a screenshot supports visual observations but no numeric geometry PASS. Full success requires every mandatory check to have adequate passing evidence. An incomplete result can be presented for review without claiming completion or user acceptance.

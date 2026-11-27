@@ -1,0 +1,31 @@
+{
+  "id": "layout-regression",
+  "initial_conditions": "A supported node/render tool reports successful mutation, but read-back shows wrapped text overlapping the next field. A retry partially fails.",
+  "user_request": "Build this form and check the result.",
+  "workflows": [
+    "new-screen"
+  ],
+  "expected_decisions": [
+    "Compare fresh output with planned relationships rather than tool success.",
+    "Detect overlap and inspect actual partial-write state before retrying.",
+    "Correct responsible layout, re-read and regression-check; stop at recovery limit if unresolved."
+  ],
+  "mandatory_invariants": [
+    "Fresh actual evidence",
+    "Bounded correction",
+    "No hidden failure"
+  ],
+  "observable_success": [
+    "Regression detected and corrected with new evidence or explicitly blocked"
+  ],
+  "failure_conditions": [
+    "Claims success from write response",
+    "Retries blindly",
+    "Loops beyond three correction passes"
+  ],
+  "evidence_required": [
+    "Planned constraints",
+    "Mutation/partial failure log",
+    "Fresh measurements and renders for each pass"
+  ]
+}

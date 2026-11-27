@@ -1,172 +1,36 @@
-> Internal stage of the `pr-review` skill. Reached only through `../SKILL.md` — never invoked directly as a skill.
+# Deterministic report build
 
+The agent outputs JSON. The checked-in template and assets define presentation.
+Use the scripts below from the skill directory; never rewrite or copy the HTML
+by hand during a review.
 
-# PR Review Report
+1. Collect the exact review snapshot:
+   `python3 scripts/collect-context.py --repo <root> --mode <pull_request|commit_range|local> --base <base> --head <head> [--pr <number>] --output <context.json>`
+   Add repeatable `--include <path>` for supporting locations outside changed
+   files. Local mode captures the working tree (including staged and untracked
+   content) against the selected baseline; choose upstream as baseline when
+   unpushed commits belong in scope. PR mode resolves its SHAs through `gh`.
+2. The review agent returns analysis.json matching `schemas/analysis.schema.json`.
+3. Assign finding IDs for the comment-agent handoff:
+   `python3 scripts/build-report.py prepare --analysis <analysis.json> --output <accepted.json>`
+4. The comment agent follows `stages/comments.md`, returning comments.json.
+5. Build the fixed report:
+   `python3 scripts/build-report.py build --context <context.json> --analysis <accepted.json> --comments <comments.json> --output <review.html>`
+6. Validate: `scripts/validate-report.sh <review.html>`.
 
-Generate exactly one self-contained HTML document from validated findings.
-Start from `../templates/report.html`; `../assets/report.css` and
-`../assets/report.js` mirror its inline styles and renderer. Validate with
-`../scripts/validate-report.sh`. For pull requests, the skill starts
-`../scripts/open-report.sh <absolute-report-path>` in a persistent command
-session and returns the served URL; the reviewer should not need to launch
-the helper manually. This one helper serves the report and provides its PR
-context refresh and action endpoints. For other modes, return the validated
-HTML file directly.
+Correct only the input fields identified by validation errors, then retry.
+The builder owns metadata, counts, excerpts, associations, safe JSON embedding,
+and asset assembly. The schema is version 2.0. It contains an intent comparison
+instead of a change-flow diagram. HTML is self-contained and readable offline.
 
-## Design principles
+Write artifacts under `/tmp/pr-review/<repo>-<pr-or-range>-<timestamp>/`
+or the configured output directory. In PR mode start
+`scripts/open-report.sh <absolute-report-path>` in a persistent host session
+and return the URL. Keep it running while the reviewer uses the report.
+If persistent processes or browser opening are unavailable, describe the
+limitation and supply the command. For local/range reviews return the file.
 
-A fast technical developer tool, not a marketing dashboard. Prioritize
-readability, source navigation, keyboard accessibility, low visual noise,
-fast rendering, technical clarity. Avoid cards-everywhere, hero sections,
-charts, gradients, marketing language, decorative animation.
-
-## Structure
-
-```text
-Header (PR/range, author, base→head, finding counts; sticky; theme toggle)
-Tabs: Overview | Changes (n files · n findings), open on Overview
-  Overview
-    ├── Review summary (required, first)
-    ├── Clickable SVG sequence diagram with source excerpts and finding links
-    ├── Stats (files, +/-, commits) + key files
-    └── Finish review card (PR mode only)
-  Changes
-    ├── Changed file rail and unified diff with old/new line numbers
-    ├── Findings panel beside the diff, filtered by severity and linked to
-        separate finding detail views
-    └── Inline comment composer on changed lines; shared comment staging
-        with finding detail
-  Finish review card (PR mode only, on Overview and Changes)
-    ├── Comment → Request changes → Approve
-    └── Merge pull request → Close pull request
-Footer (SHAs, generated-at, schema version, mode note)
-```
-
-Omit the flow when it is too small to justify one; omit overview sections
-whose data is absent. Flow nodes must come from actual evidence — never
-invent architecture.
-
-## Data contract
-
-Embed the review JSON in the HTML — no external fetch:
-
-```html
-<script type="application/json" id="review-data">{ ... }</script>
-```
-
-Must conform to `../schemas/review.schema.json`, including `changes[]` for
-every changed file. Include a concise,
-plain-language `overview.summary` that opens the report; this field is
-required. IDs stable (`F-001`, `S-001`). The contract is version 1.1 and
-includes `pr_context` (an object containing lifecycle, lifecycle dates,
-aggregate review decision, and `fetched_at`, or `null` until a successful
-read). In PR mode, context is fetched through the local helper when the
-report opens and on explicit Refresh; never poll. Show lifecycle and
-decision as separate indicators, plus loading and last-updated/error state.
-Failed or partial reads retain the previous context and timestamp; without a
-successful read, show unavailable rather than treating missing data as “No
-decision”.
-
-## Change flow
-
-Render the supplied `flow` nodes as a horizontal SVG sequence diagram in
-their supplied order, with arrows between steps. Each block is keyboard and
-pointer accessible; selecting it opens its source excerpt and linked
-findings. If the selected step has linked findings, open the first linked
-finding’s dedicated detail view; otherwise show that step’s source excerpt.
-Label a transition only when review data supplies evidence for it
-(`transition`). Populate `flow[].locations[].code_excerpt` (or
-`flow[].code_excerpt`) with a short source window. Never invent architecture
-or transitions beyond the supplied data.
-
-## Finding interaction
-
-Queue rows show severity badge, title, `file:start`, and status badge
-(follow-ups). Selecting a row opens a dedicated finding detail view with
-back, previous, and next navigation: explanation
-(`reason`), syntax-highlighted, line-numbered source with the finding range
-highlighted, impact, evidence, suggestions, and — in PR
-mode — the comment composer with Add comment; Discard is always present.
-
-Show each location and let the reviewer select the inline comment target.
-Suggested-fix selection populates the comment composer; render `code` as a
-highlighted code block and let the reviewer edit the comment before
-submitting. Discard only hides locally unless the agent is asked to act.
-
-## Actions (pull_request mode only)
-
-Only when `review.mode` is `pull_request`. For `commit_range` and `local`
-reviews there is no PR to post to, so omit the Review Actions section
-entirely, along with the per-finding comment composer and Add-comment
-button (keep Discard for local triage). The footer notes that PR actions
-are unavailable.
-
-When in PR mode, the report stages comments locally and presents a review
-confirmation dialog. When opened through the helper started by the skill,
-it posts the payload to the loopback-only helper in
-`scripts/actions-server.py`; that
-helper checks the current PR head SHA and runs the requested `gh` action.
-The HTML never calls GitHub. Opening the HTML directly with `file://` keeps
-all review actions unavailable. Require a separate confirmation for each
-review, merge, or close action. Approve and request-changes also require a
-summary body; merge and close never include staged review comments.
-
-For merge, load the repository's enabled merge methods through the local
-helper, let the reviewer choose one in the confirmation dialog, and include
-that method in the confirmed payload. The helper rechecks that the selected
-method is still enabled and passes its explicit `--merge`, `--squash`, or
-`--rebase` flag to `gh pr merge`.
-
-Place the same Finish review card at the bottom of both Overview and Changes
-so PR actions are available from either tab. Keep merge and close visually
-separate from review events inside the card's Pull request subsection.
-
-```json
-{ "action": "COMMENT | REQUEST_CHANGES | APPROVE | MERGE | CLOSE",
-  "repo": "owner/repo", "pr": 123, "commit_sha": "...",
-  "merge_method": "merge | squash | rebase",
-  "comments": [{ "finding": "F-001", "file": "...", "line": 42, "side": "RIGHT", "body": "..." }],
-  "body": "..." }
-```
-
-Show the exact payload and effect in a confirmation dialog before submitting.
-Check the report head SHA again before every action. Merge through
-`gh pr merge --match-head-commit` with the explicitly selected strategy;
-close through `gh pr close`. On stale
-head SHA or a GitHub error, show the error and preserve staged comments.
-
-## Changes tab and comment integration
-
-Include every changed file in `changes[]`, with its status, additions,
-deletions, and per-file unified `patch` from the exact reviewed range. Render
-the patches with old/new line numbers. In PR mode, any added, removed, or
-context line in a diff hunk can stage an inline comment. Use `RIGHT` for
-added/context lines and `LEFT` for removed lines. Finding-detail comments
-and Changes-tab comments share the same `(file, line, side)` anchor, so a
-comment is visible and editable in both views and is submitted once.
-Associate files with findings by matching their paths; show the related
-findings beside the selected diff and expose them as links to the dedicated
-detail view. The Changes view is the primary finding workspace; do not add a
-separate Findings tab. For binary files or files without a text patch, state
-clearly that no inline line anchor is available.
-
-## Self-contained requirement
-
-No CDN JS/CSS, remote fonts, or external images. CSS/JS stay inline. The
-report renders from `file://` offline and supports the system theme plus a
-manual light/dark toggle; GitHub actions are available only when served by
-the local helper started by the skill through `open-report.sh`.
-
-## Code rendering
-
-Show filename, line numbers, highlighted finding lines, surrounding
-context, syntax colors, monospace font, horizontal scroll, and correct
-escaping. `code_excerpt_start_line` indicates the first excerpt line;
-default it to the finding `start_line`. Keep excerpts small — include the
-function/hunk needed, not whole files.
-
-## Output
-
-Write to `/tmp/pr-review/<repo>-<pr-or-range>-<timestamp>/review.html`
-(or repo-configured path). Return absolute path, finding counts, and
-whether GitHub was modified (always `no` at generation time).
+One shared Finish review panel stages and submits comments. GitHub mutations
+remain gated by explicit confirmation and the helper's current-head checks;
+see `actions.md`. Offline reports retain their embedded snapshot, with actions
+unavailable. The browser never calls GitHub directly.

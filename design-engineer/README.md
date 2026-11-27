@@ -1,49 +1,31 @@
 # Design Engineer
 
-A tool-agnostic Agent Skills package for **new products and ongoing design work in existing products**. It supports creating a design system, adopting and maintaining an established system, incremental feature design, targeted improvements, system evolution, and audits.
+One tool-neutral skill for greenfield products, existing-product design, screen refinement, design-system governance, audits, and inspiration research.
 
-## Scope clarification
+**Design against an explicit contract. Verify actual output, not intended changes.**
 
-**Built from scratch** describes this skill's origin, **not** the kind of product it can work on. This package was written independently of previous skills. It does not depend on legacy skill files, validators, manifests, templates, or migration scripts.
+[SKILL.md](SKILL.md) routes tasks through DISCOVER → CONTRACT → PLAN → EXECUTE ↔ VERIFY → PRESENT. Workflows load only the relevant shared references. Existing approved definitions retain their authority; canonical revisions require scoped approval before dependent work. Ordinary corrections within approved rules proceed without system reapproval. Screen acceptance remains separate.
 
-**Existing project assets are different from old skill code.** A project's current UI, canonical component library, design tokens, documentation, user decisions, and design history are vital sources of truth. Preserve them when the user is continuing an existing product. Do not replace a working design system just because this skill is newly installed.
+## Package
 
-## Supported use cases
+- [Workflows](workflows/new-screen.md): new product, new screen, refinement, canonical change, audit, and inspiration.
+- [Contract model](protocol/system-model.md) and [change control](protocol/change-control.md): authority, approvals, scope, and migrations.
+- [Layout construction](protocol/layout-construction.md): hierarchy, native constraints, tokens, realistic content, and intentional layering.
+- [Tool boundary](protocol/tool-interface.md) and [verification](protocol/layout-evidence.md): capability discovery, fresh actual read-back, numeric and visual evidence, recovery and limitations.
+- [Evaluation rubric](evals/rubric.md), cases, and [actual results](evals/results/implementation.md).
 
-| Project situation | Behavior |
-| --- | --- |
-| New product, no system | Research the product, propose foundations/components, obtain approval, then build screens. |
-| Existing approved design system | Inspect and map approved assets; reuse them without requiring fresh approval for unchanged definitions. |
-| Existing product without a formal system | Inventory the current UI and patterns; propose a baseline, flag uncertainty, and obtain approval before declaring it canonical. |
-| New feature in an existing product | Reuse approved components; propose and obtain approval for missing parts before using them in new screens. |
-| Iterative screen updates | Make scoped changes within existing rules; verify that surrounding UI and unrelated screens were not altered. |
-| System refinement or redesign | Audit, assess effects on existing screens, present revision-scoped proposals, and apply only approved changes. |
-| Inspiration-led request | Research transferable principles and adapt to the product; don't blindly reproduce the reference. |
+Install this whole directory through the repository installer or copy it to your agent's skill directory. Supporting files are internal documents, not separate skills. The entry point uses portable name/description frontmatter and no agent-specific commands.
 
-## Workflow summary
+## Optional verifier
 
-1. Identify the task and inspect the **actual product** (requirements, live designs, system library, previous decisions).
-2. Determine whether the design system is already approved, partially documented, or missing. Map the existing approved system into the skill's neutral contract without modifying canonical assets.
-3. For a change that needs a new/modified system element, propose that change and **stop for user approval before dependent screen work**.
-4. Compose or update only the requested screens using approved system assets.
-5. Read back real geometry and styles, run objective checks where supported, inspect rendered output, and present the screen for acceptance.
-
-The optional dependency-free Node.js checker validates normalized **actual design measurements** against an approved system contract. It does not integrate with a design tool by itself or certify visual quality.
+Requires Node.js; no package installation or design-tool integration is included. From this directory:
 
 ```bash
-node --test tests/verify-layout.test.mjs
+node tests/verify-layout.test.mjs
+node tests/validate-package.mjs
 node bin/verify-layout.mjs examples/approved-system.json examples/valid-scene.json
 ```
 
-These examples are **simulated** and are not approvals, genuine design-tool exports, or prescribed product tokens.
+Fixtures are simulations, not real approvals or tool exports. The sample returns PARTIAL with exit code 0: no reported numeric errors, visual inspection unresolved. The verifier cannot authenticate provenance, detect all omitted metadata, or certify rendered quality. See its [coverage limits](protocol/layout-evidence.md). Tool-independent policy does not imply every adapter supports every check; unsupported mandatory checks are UNVERIFIABLE.
 
-## Installation
-
-Install the `design-engineer/` directory in your agent's skills location. `SKILL.md` is the entry point; `protocol/` contains supporting instructions loaded as needed.
-
-## Limitations
-
-- A capable adapter is needed to read back live design-tree measurements and reusable-component links from Penpot, Figma, or another tool.
-- If a required property cannot be measured, the check is `UNVERIFIABLE`, not `PASS`.
-- Code-based geometry checks complement, but cannot replace, visual and human review.
-- Approval must come from the user or an identifiable existing approved project decision; it cannot be fabricated from the presence of a file or a successful test.
+No comparative agent-performance improvement is claimed. The [audit](evals/results/audit.md) separates observed implementation issues from behavioral hypotheses; the evaluation protocol explains how to collect comparable evidence across agents and tools.

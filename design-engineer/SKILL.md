@@ -1,89 +1,83 @@
 ---
 name: design-engineer
 description: >
-  Design, extend, maintain, and review product UI for both new and existing
-  projects. Enforce existing approved design systems, govern changes through
-  user approval, check real spacing and geometry, and adapt inspirations to
-  the product. Works across design tools rather than depending on Penpot.
+  Design product UI for new and existing products: create screens, refine
+  feedback, audit or evolve design systems, and adapt inspiration. Reuse
+  approved components, govern canonical changes, construct constrained layouts,
+  and verify actual output across design tools.
 ---
 
 # Design Engineer
 
-## Scope and operating principle
+Design against an explicit contract. Verify actual output, not intended changes.
 
-This skill was authored **from scratch** and has no dependency on previous skills, their Markdown, scripts, validators, templates, or manifests. **This does not mean the project must be greenfield.** Existing product UI, documented requirements, canonical design libraries, approved decisions, and established visual conventions are essential evidence. Read and preserve them when working on an existing product. Never discard, recreate, or reapprove an already established design system merely because the skill itself is new.
+## Route the task
 
-The role is **continuous design-system governance**: remain creative in research and proposals, but rigorous in the execution and validation of agreed design rules.
+Inspect the current product before selecting a route; an installed skill does not imply a greenfield product. Load the matching workflow, then only the references its conditions require. Multiple routes can compose under the lifecycle below; they do not start separate approval processes.
 
-## Non-negotiable rules
+| Requested outcome | Workflow |
+| --- | --- |
+| Establish a product with no existing baseline | [New product](workflows/new-product.md) |
+| Add a feature or screen to a product | [New screen](workflows/new-screen.md) |
+| Correct or refine existing UI from feedback | [Refine screen](workflows/refine-screen.md) |
+| Add, revise, remove, or migrate canonical definitions | [Design-system change](workflows/design-system-change.md) |
+| Inventory, adopt, or assess an existing system | [Audit](workflows/audit.md) |
+| Research or adapt visual references | [Inspiration](workflows/inspiration.md) |
 
-1. **Product first.** Understand real users, platform, workflows, states, content, constraints, and the existing product before designing. Inspirations supply principles, not copyable screens.
-2. **Respect the actual baseline.** Locate and inspect the project's current canonical system and designs. Use established, approved definitions as-is. Record evidence of their authority; do not invent approval history. Do not silently declare an inferred pattern approved.
-3. **Prefer reuse.** Screens must use approved tokens, component instances, variants, constraints, and composition rules. No detached lookalikes, arbitrary spacing, or styling overrides.
-4. **Approve system changes before dependency.** New/modified/removed canonical tokens, components, variants, states, and layout rules require a scoped proposal and explicit user approval **before** changing the canonical system or building the dependent screen. This includes changes proposed while implementing features or reacting to inspiration.
-5. **Do not block normal maintenance unnecessarily.** Repairing a screen-local violation to match an existing approved rule is not a design-system modification. Unchanged, demonstrably approved definitions do not require repeated approval.
-6. **Measure the result.** Inspect fresh, read-back geometry and styles, and compare alignments, bounding boxes, padding, gaps, overflow, typography, variants, and linkages with the contract. Never validate only intended edits.
-7. **Check the render.** Review hierarchy, rhythm, optical balance, content length, contrast, responsive behavior, and relevant states separately from numeric checks.
-8. **Make uncertainty explicit.** Unsupported capabilities are `UNVERIFIABLE`, never `PASS`; no fabricated tool access, measurements, or approvals.
-9. **Separate acceptance.** User approval of a design-system proposal does not approve the resulting screen; successful validation does not mean the screen was accepted.
-10. **Control scope.** No opportunistic restyling or mass refactoring of unaffected screens. Surface pre-existing inconsistencies as findings and ask before expanding scope.
+Use new-screen for an existing product even when its system is undocumented; reconcile only relevant dependencies. Add the system-change route when a canonical dependency is missing or unsuitable. Add inspiration when references inform the task. An explicit redesign preserves decisions outside the authorized change.
 
-## Always start with a project assessment
+## Lifecycle
 
-1. Read applicable PRD/requirements, ADRs, user journeys, current screen designs, canonical components, tokens, composition rules, supported viewports, and available decision records. For an existing project, inspect the *actual live UI* as well as documentation when possible.
-2. Discover design-tool capabilities via `protocol/tool-interface.md`. Don't assume Penpot, Figma, or any particular application.
-3. Identify the working mode and baseline condition:
-   - **New project**: no existing UI/system; propose a new contract.
-   - **Existing approved system**: identify the canonical source and approved revision; reuse without blanket reapproval.
-   - **Existing partial/undocumented system**: inventory the real UI, distinguish verified conventions from inferred ones, propose a baseline or only its unresolved parts for approval; don't silently overwrite assets.
-   - **Explicit redesign**: identify which existing decisions the user wants changed, and which remain in force.
-4. Map the current approved system to the neutral registry described by `protocol/system-model.md`. Mapping is an observation, **not** a design-system mutation. Check source identity and real component properties. If authority/approval cannot be established, ask for scoped baseline confirmation before relying on inferred definitions for production work. Do not fabricate an approval reference.
-5. Define the requested change, affected screens, dependencies, existing components to reuse, and boundaries. Distinguish pre-existing drift from changes introduced by this task.
+Each phase consumes the preceding phase's evidence. Keep a concise task record in the project's existing format: scope, contract sources/authority, construction constraints, mutations, checks, and outstanding decisions. No new registry or paperwork is required merely to use this skill.
 
-## Working modes
+### DISCOVER — establish the actual baseline
 
-### 1. Establish a system for a new product
+**Inputs:** user request, product artifacts, available tools.
 
-Research product needs and platform conventions. Propose a coherent foundation, components, states, accessibility rules, composition patterns, and viewports. Validate draft feasibility; request user approval before canonical creation and dependent screens. Record the approved revision.
+Inspect requirements, users, journeys, content, existing UI, relevant screens, reusable assets, canonical libraries, prior decisions, and project constraints. Discover actual read/write/render capabilities through [tool-interface](protocol/tool-interface.md), required before tool operations or verification claims. Identify target viewports/states, affected dependencies, and pre-existing drift.
 
-### 2. Adopt or audit an existing design system
+**Exit:** scope, relevant baseline, available evidence, and tool limitations are identified. Missing critical access or ambiguous scope blocks only dependent work; report the smallest missing input.
 
-Inspect canonical tool assets, real screens, tokens, component variants, and current governance. Build an evidence-backed inventory and map approved assets into the neutral contract **without changing or resetting them**. Preserve existing approvals where identifiable. If the system is undocumented or its authority is uncertain, propose a reviewable baseline with clearly marked verified/inferred details; obtain user confirmation before declaring uncertain details canonical. Report drift separately from undocumented conventions.
+### CONTRACT — establish applicable authority
 
-### 3. Add a feature or design a new screen
+**Inputs:** baseline and decision evidence.
 
-1. Write a focused brief: intended workflow, existing entry points, screen states, realistic content, viewports, and acceptance criteria.
-2. Inspect relevant existing screens and locate reusable approved components and layout patterns; record dependencies and impact.
-3. If an approved definition is missing or unsuitable, follow `protocol/change-control.md`: propose a new or revised system element, preview it in isolation, and **stop** dependent screen implementation until the user approves that revision.
-4. Apply approved system changes, verify them in the canonical library, and update the system revision/decision record.
-5. Build the screen using live reusable instances and approved composition rules; do not change unrelated screens.
-6. Read back live geometry/styles and validate according to `protocol/layout-evidence.md`. Fix screen-local violations and recheck.
-7. Inspect actual renders at relevant viewports/states; document unresolved items; request screen approval and record the decision.
+Read [system-model](protocol/system-model.md) when establishing or reconciling rules. Classify applicable definitions as approved, verified convention, inferred, conflicting, or missing. Preserve identifiable approvals and canonical sources. Before introducing a component, inspect the approved library and reuse an equivalent asset.
 
-### 4. Refine an existing screen or resolve design feedback
+For uncertain authority or any canonical change, read [change-control](protocol/change-control.md). Obtain the scoped decision before dependent mutations. Screen-local corrections within approved rules proceed without another system approval. Before touching an out-of-scope element, establish an authorized dependency or leave it unchanged.
 
-Compare the requested change against the approved baseline. Fix spacing, geometry, layout, and content problems **within existing rules** without seeking a system change approval. When feedback requires changing a token, component, variant, or canonical rule, propose it first and pause dependent edits. Check the target and immediate surroundings for regressions, and do not modify unrelated areas. Present before/after evidence for acceptance.
+**Exit:** applicable constraints and their authority are recorded; blocking approvals/conflicts are resolved or isolated. Existing patterns alone do not establish approval.
 
-### 5. Evolve or refactor the design system
+### PLAN — specify structural relationships
 
-Audit current usage and drift. Assess migration impact across existing screens and states. Propose changes with affected dependencies, compatibility strategy, exact metrics, and rollback considerations. Each scoped revision needs explicit approval before canonical edits. Update affected screens only to the approved extent and revalidate them.
+**Inputs:** task contract, reusable assets, actual content, states and viewports.
 
-### 6. Research inspiration and synthesize a direction
+Before layout creation or modification, read [layout-construction](protocol/layout-construction.md). Specify components/variants, tokens, parent-child hierarchy, layout primitives, alignment, spacing/padding, sizing, responsive behavior, and relevant states. Define measurable expected relationships independently of eventual read-back measurements.
 
-Follow `protocol/inspiration.md`. Decompose the inspiration into principles, research the product's needs and alternatives, and synthesize a product-specific direction. Respect existing approved foundations; changes to those foundations require normal system approval.
+**Exit:** construction relationships and applicable checks are explicit. Missing constraints that determine correctness block affected construction. Read-only work instead plans its inspection or research evidence.
 
-## Validation and tool support
+### EXECUTE — apply the authorized scope
 
-Use `protocol/layout-evidence.md` to distinguish numeric machine-checkable assertions from rendered visual review. If available, the **new** dependency-free Node.js verifier `bin/verify-layout.mjs` reads a neutral approved system registry and a fresh scene export. The tool adapter must provide genuine read-back data; a constructed JSON document is not proof. The checker is optional, not a replacement for real inspection or an integration with a particular tool.
+**Inputs:** construction plan and applicable approvals.
 
-## Deliverable on each task
+Apply scoped mutations using approved assets. Preserve stable identities and reusable linkages where supported. After a partial failure, inspect the actual state before retrying or continuing dependent writes. Read-only routes gather evidence here without mutations.
 
-Report: project situation and scope; current approved system and evidence (or uncertain baseline); reused components; system proposals and their decision states; work done; evidence source and tested viewports; numeric violations and fixes; visual QA; unverifiable checks; regression/impact notes; and exact user decision needed. Keep **design-system proposal approval** and **screen acceptance** visibly separate.
+**Exit:** actual applied changes are known and ready for independent verification. Uncertain writes or unsafe canonical operations block dependent work.
 
-Supporting references, loaded as needed:
+### VERIFY — compare actual output with the contract
 
-- `protocol/system-model.md` — contract and adopting existing project systems
-- `protocol/change-control.md` — changes, approvals, and scope boundaries
-- `protocol/tool-interface.md` — adapter capabilities and live design evidence
-- `protocol/layout-evidence.md` — read-back geometry and verification
-- `protocol/inspiration.md` — research and independent interpretation
+**Inputs:** expected constraints, mutation record, fresh actual read-back and renders.
+
+Read [layout-evidence](protocol/layout-evidence.md) for every changed design and any verification audit. Check applicable geometry, styles, tokens, identity/linkage, content, states, responsiveness, and rendered quality. Tool success and generated mutation payloads are not output evidence. Check capability and coverage before claiming PASS; unsupported checks are UNVERIFIABLE.
+
+A failure returns to scoped correction and another relevant verification pass. Stop after three correction passes for the same unresolved failure, or earlier for unsafe changes, missing approval, or no progress. Report evidence and the blocker; independent authorized work may continue.
+
+**Exit:** supported mandatory checks pass, or failures and limitations are explicitly recorded as incomplete. Full success requires evidence for every mandatory check. Read-only routes verify findings against sources rather than claim implemented output.
+
+### PRESENT — show evidence and obtain the right decision
+
+**Inputs:** actual output, check results, unresolved issues.
+
+Show the actual artifact or render when available; otherwise identify it and the presentation limitation. Explain meaningful applied changes, reused assets, evidence sources/viewports/states, numeric and visual results, introduced versus pre-existing issues, limitations, and outstanding decisions. Keep the report proportional to the task.
+
+**Exit:** the user can inspect the result and distinguish applied work from proposals. Request screen acceptance for a changed screen separately from any system decision. Validation establishes neither user acceptance nor approval history.

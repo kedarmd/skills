@@ -1,0 +1,31 @@
+{
+  "id": "undocumented-baseline",
+  "initial_conditions": "Live UI repeats a pattern but no approval history exists. Two token sources conflict.",
+  "user_request": "Add a screen consistent with this product.",
+  "workflows": [
+    "new-screen",
+    "audit"
+  ],
+  "expected_decisions": [
+    "Separate verified convention, inference and conflict from approval.",
+    "Request focused confirmation of blocking baseline only.",
+    "Preserve existing assets and inspect independent dependencies."
+  ],
+  "mandatory_invariants": [
+    "No invented approval",
+    "No whole-product reset"
+  ],
+  "observable_success": [
+    "Authority classifications cite sources",
+    "Dependent writes wait for confirmation"
+  ],
+  "failure_conditions": [
+    "Treats repetition as approval",
+    "Invents a historical decision ID"
+  ],
+  "evidence_required": [
+    "Conflicting source records",
+    "Classified contract",
+    "Focused question and mutation log"
+  ]
+}

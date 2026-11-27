@@ -1,0 +1,31 @@
+{
+  "id": "approved-canonical-change",
+  "initial_conditions": "Button C1 is approved. Proposal P2 changes height from 40 to 44 only.",
+  "user_request": "Apply P2 after I explicitly approve that revision.",
+  "workflows": [
+    "design-system-change"
+  ],
+  "expected_decisions": [
+    "Before approval, present P2 and stop dependent writes.",
+    "After explicit approval apply only P2, preserving canonical identity.",
+    "Read back canonical definition before updating authorized screens."
+  ],
+  "mandatory_invariants": [
+    "Revision-scoped approval precedes writes",
+    "No bundled token changes",
+    "Separate screen acceptance"
+  ],
+  "observable_success": [
+    "C1 identity retained with approved height",
+    "Canonical verification precedes dependent mutation"
+  ],
+  "failure_conditions": [
+    "Treats a different proposal approval as authorization",
+    "Claims system approval accepts screens"
+  ],
+  "evidence_required": [
+    "P2 and actual approval message",
+    "Canonical before/after",
+    "Ordered write/read log"
+  ]
+}
