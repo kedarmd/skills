@@ -187,7 +187,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 file, line, side, text = str(c["file"]), int(c["line"]), c["side"], str(c["body"])
                 if not file or file.startswith("/") or ".." in Path(file).parts or line < 1 or side not in ("LEFT", "RIGHT") or not text.strip():
                     raise ValueError("invalid inline comment location or body")
-                safe_comments.append({"path": file, "line": line, "side": side, "body": text})
+                safe = {"path": file, "line": line, "side": side, "body": text}
+                if "start_line" in c or "start_side" in c:
+                    start_line, start_side = int(c["start_line"]), c["start_side"]
+                    if start_line < 1 or start_side not in ("LEFT", "RIGHT"):
+                        raise ValueError("invalid inline comment range")
+                    if start_line != line or start_side != side:
+                        safe["start_line"] = start_line
+                        safe["start_side"] = start_side
+                safe_comments.append(safe)
         except (ValueError, KeyError, TypeError, json.JSONDecodeError) as e:
             return self.send_json(400, {"error": str(e)})
 
